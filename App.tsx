@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Camera, ChefHat, Calendar, MessageCircle, LayoutDashboard, UtensilsCrossed, Menu, X, ArrowRight } from 'lucide-react';
 import PhotoAnalyzer from './components/PhotoAnalyzer';
 import RecipeFinder from './components/RecipeFinder';
@@ -10,6 +10,21 @@ import { AppView } from './types';
 const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<AppView>(AppView.DASHBOARD);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [username, setUsername] = useState<string>('');
+
+  useEffect(() => {
+    // Initialize Telegram Web App
+    if (window.Telegram?.WebApp) {
+      window.Telegram.WebApp.ready();
+      window.Telegram.WebApp.expand(); // Open full height
+      
+      // Get user name if available
+      const user = window.Telegram.WebApp.initDataUnsafe?.user;
+      if (user?.first_name) {
+        setUsername(user.first_name);
+      }
+    }
+  }, []);
 
   const renderContent = () => {
     switch (currentView) {
@@ -23,7 +38,7 @@ const App: React.FC = () => {
         return <ChatAssistant />;
       case AppView.DASHBOARD:
       default:
-        return <Dashboard onViewChange={setCurrentView} />;
+        return <Dashboard onViewChange={setCurrentView} username={username} />;
     }
   };
 
@@ -116,7 +131,7 @@ const App: React.FC = () => {
   );
 };
 
-const Dashboard: React.FC<{ onViewChange: (view: AppView) => void }> = ({ onViewChange }) => (
+const Dashboard: React.FC<{ onViewChange: (view: AppView) => void, username?: string }> = ({ onViewChange, username }) => (
   <div className="space-y-8 animate-fade-in pb-10">
     {/* Hero Section */}
     <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-[2.5rem] p-8 md:p-12 text-white shadow-2xl shadow-gray-200 relative overflow-hidden group">
@@ -125,7 +140,7 @@ const Dashboard: React.FC<{ onViewChange: (view: AppView) => void }> = ({ onView
           ✨ Твой персональный помощник
         </span>
         <h1 className="text-4xl md:text-5xl font-heading font-bold mb-4 leading-tight">
-          Привет! <br/>Что приготовим сегодня?
+          Привет{username ? `, ${username}` : ''}! <br/>Что приготовим сегодня?
         </h1>
         <p className="text-gray-300 text-lg mb-8 leading-relaxed max-w-lg">
           Загрузите фото продуктов или готового блюда, и я помогу рассчитать калории или придумать рецепт.
