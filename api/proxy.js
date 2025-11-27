@@ -36,9 +36,13 @@ export default async function handler(req, res) {
     if (action === 'analyze') {
       const { image, mimeType } = payload;
       const prompt = `
-        Analyze this food image accurately. Identify the dish or ingredients.
-        Estimate the total calories, protein (g), carbs (g), and fat (g) for the serving size shown.
-        Provide a brief description and a confidence level (High/Medium/Low).
+        Analyze this food image accurately. 
+        1. Identify the dish or ingredients.
+        2. Estimate total calories, protein, carbs, and fat.
+        3. Provide a brief description.
+        4. Suggest 2 distinct culinary variations or recipes for this dish (e.g. classic vs modern, or different cooking method).
+
+        IMPORTANT: All text output (foodName, description, recipe names) MUST BE IN RUSSIAN LANGUAGE.
       `;
 
       const response = await ai.models.generateContent({
@@ -54,15 +58,25 @@ export default async function handler(req, res) {
           responseSchema: {
             type: Type.OBJECT,
             properties: {
-              foodName: { type: Type.STRING },
-              description: { type: Type.STRING },
+              foodName: { type: Type.STRING, description: "Name of the food in Russian" },
+              description: { type: Type.STRING, description: "Brief description in Russian" },
               calories: { type: Type.NUMBER },
               protein: { type: Type.NUMBER },
               carbs: { type: Type.NUMBER },
               fat: { type: Type.NUMBER },
-              confidence: { type: Type.STRING }
+              confidence: { type: Type.STRING },
+              suggestedRecipes: {
+                type: Type.ARRAY,
+                items: {
+                  type: Type.OBJECT,
+                  properties: {
+                    name: { type: Type.STRING, description: "Name of the recipe variation in Russian" },
+                    description: { type: Type.STRING, description: "Short cooking tip or difference in Russian" }
+                  }
+                }
+              }
             },
-            required: ["foodName", "calories", "protein", "carbs", "fat", "description"]
+            required: ["foodName", "calories", "protein", "carbs", "fat", "description", "suggestedRecipes"]
           }
         }
       });

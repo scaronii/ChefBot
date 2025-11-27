@@ -19,6 +19,10 @@ export interface FoodAnalysisResult extends MacroData {
   foodName: string;
   description: string;
   confidence: string;
+  suggestedRecipes?: {
+    name: string;
+    description: string;
+  }[];
 }
 
 export interface HistoryItem extends FoodAnalysisResult {

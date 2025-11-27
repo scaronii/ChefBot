@@ -1,6 +1,6 @@
 
 import React, { useState, useRef } from 'react';
-import { Camera, Upload, Loader2, CheckCircle, AlertCircle, Plus, Info } from 'lucide-react';
+import { Camera, Upload, Loader2, CheckCircle, AlertCircle, Plus, Info, ChefHat, Flame, ArrowRight } from 'lucide-react';
 import { analyzeFoodImage } from '../services/geminiService';
 import { saveHistoryItem } from '../services/historyService';
 import { FoodAnalysisResult } from '../types';
@@ -115,7 +115,7 @@ const PhotoAnalyzer: React.FC = () => {
   ] : [];
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 animate-fade-in">
+    <div className="max-w-4xl mx-auto space-y-8 animate-fade-in pb-12">
       <div className="bg-white p-8 rounded-[2.5rem] shadow-xl shadow-emerald-900/5">
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-emerald-100 text-emerald-600 rounded-2xl mb-4">
@@ -167,7 +167,7 @@ const PhotoAnalyzer: React.FC = () => {
         {loading && (
           <div className="mt-8 bg-emerald-50/50 rounded-2xl p-6 flex items-center justify-center gap-4">
             <Loader2 className="w-6 h-6 text-emerald-600 animate-spin" />
-            <p className="text-emerald-800 font-medium animate-pulse">ИИ анализирует и сжимает фото...</p>
+            <p className="text-emerald-800 font-medium animate-pulse">ИИ анализирует и переводит на русский...</p>
           </div>
         )}
 
@@ -179,7 +179,7 @@ const PhotoAnalyzer: React.FC = () => {
         )}
 
         {result && !loading && (
-          <div className="mt-10 animate-fade-in-up">
+          <div className="mt-10 animate-fade-in-up space-y-6">
             <div className="grid md:grid-cols-2 gap-8 items-start">
               {/* Info Card */}
               <div className="bg-gray-50 rounded-[2rem] p-6 md:p-8">
@@ -256,6 +256,30 @@ const PhotoAnalyzer: React.FC = () => {
                 </div>
               </div>
             </div>
+
+            {/* Suggested Recipes Section */}
+            {result.suggestedRecipes && result.suggestedRecipes.length > 0 && (
+              <div className="mt-8 pt-8 border-t border-gray-100">
+                <h3 className="text-xl font-heading font-bold text-gray-900 mb-6 flex items-center gap-2">
+                  <ChefHat className="w-6 h-6 text-orange-500" />
+                  Варианты приготовления
+                </h3>
+                <div className="grid md:grid-cols-2 gap-4">
+                  {result.suggestedRecipes.map((recipe, idx) => (
+                    <div key={idx} className="bg-orange-50/50 p-5 rounded-3xl border border-orange-100 hover:bg-orange-50 transition-colors">
+                      <h4 className="font-bold text-gray-900 mb-2 flex items-center gap-2">
+                         <Flame className="w-4 h-4 text-orange-500" />
+                         {recipe.name}
+                      </h4>
+                      <p className="text-sm text-gray-600 leading-relaxed mb-3">
+                        {recipe.description}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
           </div>
         )}
       </div>
