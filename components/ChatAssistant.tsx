@@ -1,7 +1,8 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Send, User, Bot, Loader2, Sparkles } from 'lucide-react';
 import { ChatMessage } from '../types';
-import { createChatSession } from '../services/geminiService';
+import { sendMessageToChat } from '../services/geminiService';
 import ReactMarkdown from 'react-markdown';
 
 const ChatAssistant: React.FC = () => {
@@ -11,13 +12,6 @@ const ChatAssistant: React.FC = () => {
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
-  const chatSession = useRef<any>(null);
-
-  useEffect(() => {
-    if (!chatSession.current) {
-      chatSession.current = createChatSession();
-    }
-  }, []);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -27,17 +21,23 @@ const ChatAssistant: React.FC = () => {
     if (!input.trim() || loading) return;
 
     const userMsg: ChatMessage = { role: 'user', text: input, timestamp: new Date() };
+    const currentHistory = [...messages]; // Store current history before adding new user msg visually
+    
     setMessages(prev => [...prev, userMsg]);
     setInput('');
     setLoading(true);
 
     try {
-      const result = await chatSession.current.sendMessage({ message: userMsg.text });
-      const responseText = result.text;
+      // Pass the *entire* history (including the prompt) + the new message is implied in the history? 
+      // Actually, standard practice for stateless chat:
+      // Send History (old) + New Message.
+      // Or just append new message to history and send all.
+      
+      const result = await sendMessageToChat(userMsg.text, currentHistory);
       
       const botMsg: ChatMessage = { 
         role: 'model', 
-        text: responseText, 
+        text: result.text, 
         timestamp: new Date() 
       };
       setMessages(prev => [...prev, botMsg]);
@@ -45,7 +45,7 @@ const ChatAssistant: React.FC = () => {
       console.error(error);
       setMessages(prev => [...prev, { 
         role: 'model', 
-        text: 'Извините, произошла ошибка. Пожалуйста, попробуйте позже.', 
+        text: 'Извините, произошла ошибка соединения. Попробуйте еще раз.', 
         timestamp: new Date() 
       }]);
     } finally {
