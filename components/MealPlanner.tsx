@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Calendar, ShoppingCart, Loader2, Sparkles, ChevronDown, ChevronUp, Copy, Check } from 'lucide-react';
 import { generateWeeklyPlan } from '../services/geminiService';
@@ -10,12 +11,22 @@ const MealPlanner: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [expandedDay, setExpandedDay] = useState<string | null>(null);
 
+  // Helper for Haptics
+  const triggerHaptic = (style: 'light' | 'medium' | 'success' = 'light') => {
+    if (window.Telegram?.WebApp?.HapticFeedback) {
+      if (style === 'success') window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+      else window.Telegram.WebApp.HapticFeedback.impactOccurred(style);
+    }
+  };
+
   const handleGenerate = async () => {
+    triggerHaptic('medium');
     setLoading(true);
     setPlan(null);
     try {
       const result = await generateWeeklyPlan(goal, preferences || 'Нет ограничений');
       setPlan(result);
+      triggerHaptic('success');
     } catch (error) {
       console.error(error);
       alert("Ошибка при создании плана. Попробуйте еще раз.");
@@ -25,6 +36,7 @@ const MealPlanner: React.FC = () => {
   };
 
   const toggleDay = (day: string) => {
+    triggerHaptic('light');
     if (expandedDay === day) setExpandedDay(null);
     else setExpandedDay(day);
   };
@@ -143,6 +155,11 @@ const ShoppingList: React.FC<{ list: string[] }> = ({ list }) => {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = () => {
+    // Haptic
+    if (window.Telegram?.WebApp?.HapticFeedback) {
+      window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
+    }
+
     const text = `Список покупок:\n${list.join('\n')}`;
     navigator.clipboard.writeText(text);
     setCopied(true);

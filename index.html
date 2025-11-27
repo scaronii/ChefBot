@@ -2,9 +2,10 @@
 <html lang="ru">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
     <title>Шеф в кармане</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <script src="https://adgram.io/js/adgram.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -16,27 +17,72 @@
       }
       body {
         font-family: var(--font-body);
-        background-color: #F8FAFC;
         color: #1e293b;
+        margin: 0;
+        padding: 0;
+        overflow-x: hidden;
+        /* Dynamic Mesh Background - Aurora Effect */
+        background-color: #eef2f3;
+        background-image: 
+          radial-gradient(at 0% 0%, hsla(168, 64%, 83%, 1) 0, transparent 55%), 
+          radial-gradient(at 50% 0%, hsla(188, 70%, 85%, 1) 0, transparent 50%), 
+          radial-gradient(at 100% 0%, hsla(35, 100%, 88%, 1) 0, transparent 55%),
+          radial-gradient(at 0% 100%, hsla(220, 50%, 90%, 1) 0, transparent 50%),
+          radial-gradient(at 100% 100%, hsla(160, 50%, 85%, 1) 0, transparent 50%);
+        background-attachment: fixed;
+        background-size: 120% 120%;
+        animation: gradient-move 15s ease infinite alternate;
+        min-height: 100vh;
       }
+      
       h1, h2, h3, h4, h5, h6, .font-heading {
         font-family: var(--font-heading);
       }
+
+      @keyframes gradient-move {
+        0% { background-position: 0% 0%; }
+        100% { background-position: 100% 100%; }
+      }
+
+      /* Animations */
+      @keyframes popIn {
+        0% { transform: scale(0.95); opacity: 0; }
+        100% { transform: scale(1); opacity: 1; }
+      }
+
+      @keyframes slideUp {
+        0% { transform: translateY(100vh); border-radius: 40px; }
+        100% { transform: translateY(0); border-radius: 0px; }
+      }
+      
+      @keyframes float {
+        0% { transform: translateY(0px) translateX(-50%); }
+        50% { transform: translateY(-8px) translateX(-50%); }
+        100% { transform: translateY(0px) translateX(-50%); }
+      }
+
+      @keyframes fanOutLeft {
+        from { transform: rotate(0deg) translate(0,0); }
+        to { transform: rotate(-12deg) translate(-10px, 15px); }
+      }
+
+      @keyframes fanOutRight {
+        from { transform: rotate(0deg) translate(0,0); }
+        to { transform: rotate(12deg) translate(10px, 15px); }
+      }
+
+      .animate-pop-in { animation: popIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+      .animate-slide-up { animation: slideUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards; }
+      .animate-float { animation: float 6s ease-in-out infinite; }
+
+      .fan-card { transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1); will-change: transform; }
+      .fan-card:active { scale: 0.95; }
+
       /* Custom Scrollbar */
-      ::-webkit-scrollbar {
-        width: 6px;
-        height: 6px;
-      }
-      ::-webkit-scrollbar-track {
-        background: transparent; 
-      }
-      ::-webkit-scrollbar-thumb {
-        background: #cbd5e1; 
-        border-radius: 10px;
-      }
-      ::-webkit-scrollbar-thumb:hover {
-        background: #94a3b8; 
-      }
+      ::-webkit-scrollbar { width: 0px; background: transparent; }
+      
+      .safe-area-bottom { padding-bottom: env(safe-area-inset-bottom); }
+      .safe-area-top { padding-top: env(safe-area-inset-top); }
     </style>
   <script type="importmap">
 {

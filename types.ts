@@ -1,9 +1,11 @@
+
 export enum AppView {
   DASHBOARD = 'DASHBOARD',
   PHOTO_ANALYZER = 'PHOTO_ANALYZER',
   RECIPES = 'RECIPES',
   MEAL_PLANNER = 'MEAL_PLANNER',
-  CHAT = 'CHAT'
+  CHAT = 'CHAT',
+  HISTORY = 'HISTORY'
 }
 
 export interface MacroData {
@@ -54,7 +56,6 @@ export interface ChatMessage {
   timestamp: Date;
 }
 
-// Global definition for Telegram WebApp
 declare global {
   interface Window {
     Telegram: {
@@ -62,6 +63,11 @@ declare global {
         ready: () => void;
         expand: () => void;
         close: () => void;
+        HapticFeedback: {
+          impactOccurred: (style: 'light' | 'medium' | 'heavy' | 'rigid' | 'soft') => void;
+          notificationOccurred: (type: 'error' | 'success' | 'warning') => void;
+          selectionChanged: () => void;
+        };
         MainButton: {
           text: string;
           color: string;

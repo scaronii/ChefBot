@@ -1,3 +1,4 @@
+
 import React, { useState, useRef } from 'react';
 import { Camera, Upload, Loader2, CheckCircle, AlertCircle, Plus, Info } from 'lucide-react';
 import { analyzeFoodImage } from '../services/geminiService';
@@ -15,10 +16,46 @@ const PhotoAnalyzer: React.FC = () => {
   const [saved, setSaved] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Trigger Telegram Haptic Feedback
+  const triggerHaptic = (style: 'light' | 'medium' | 'heavy' | 'success' | 'error' = 'light') => {
+    if (window.Telegram?.WebApp?.HapticFeedback) {
+      if (style === 'success' || style === 'error') {
+        window.Telegram.WebApp.HapticFeedback.notificationOccurred(style);
+      } else {
+        window.Telegram.WebApp.HapticFeedback.impactOccurred(style);
+      }
+    }
+  };
+
+  // Compress Image Logic
+  const compressImage = (base64Str: string, maxWidth = 1024, quality = 0.8): Promise<string> => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.src = base64Str;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        let width = img.width;
+        let height = img.height;
+
+        if (width > maxWidth) {
+          height = Math.round((height * maxWidth) / width);
+          width = maxWidth;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      };
+    });
+  };
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    triggerHaptic('medium');
     setError(null);
     setResult(null);
     setSaved(false);
@@ -27,17 +64,31 @@ const PhotoAnalyzer: React.FC = () => {
     try {
       const reader = new FileReader();
       reader.onloadend = async () => {
-        const base64String = reader.result as string;
+        let base64String = reader.result as string;
+        
+        // Show preview immediately
         setImagePreview(base64String);
+
+        // Compress if it's an image
+        if (file.type.startsWith('image/')) {
+            try {
+               base64String = await compressImage(base64String);
+            } catch (cErr) {
+               console.warn("Compression failed, using original", cErr);
+            }
+        }
         
         const base64Data = base64String.split(',')[1];
-        const mimeType = file.type;
+        // Use jpeg mime type if compressed, otherwise original
+        const mimeType = 'image/jpeg'; 
 
         try {
           const analysis = await analyzeFoodImage(base64Data, mimeType);
           setResult(analysis);
+          triggerHaptic('success');
         } catch (err: any) {
           setError(err.message || "Не удалось проанализировать изображение.");
+          triggerHaptic('error');
         } finally {
           setLoading(false);
         }
@@ -50,6 +101,7 @@ const PhotoAnalyzer: React.FC = () => {
   };
 
   const handleSave = () => {
+    triggerHaptic('success');
     if (result && !saved) {
       saveHistoryItem(result);
       setSaved(true);
@@ -78,7 +130,10 @@ const PhotoAnalyzer: React.FC = () => {
         </div>
 
         <div 
-          onClick={() => fileInputRef.current?.click()}
+          onClick={() => {
+            triggerHaptic('light');
+            fileInputRef.current?.click();
+          }}
           className={`
             relative group border-2 border-dashed rounded-[2rem] p-10 flex flex-col items-center justify-center cursor-pointer transition-all duration-300
             ${imagePreview ? 'border-emerald-500/50 bg-emerald-50/10' : 'border-gray-200 hover:border-emerald-400 hover:bg-gray-50'}
@@ -112,7 +167,7 @@ const PhotoAnalyzer: React.FC = () => {
         {loading && (
           <div className="mt-8 bg-emerald-50/50 rounded-2xl p-6 flex items-center justify-center gap-4">
             <Loader2 className="w-6 h-6 text-emerald-600 animate-spin" />
-            <p className="text-emerald-800 font-medium animate-pulse">ИИ анализирует ваше блюдо...</p>
+            <p className="text-emerald-800 font-medium animate-pulse">ИИ анализирует и сжимает фото...</p>
           </div>
         )}
 

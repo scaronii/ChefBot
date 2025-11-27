@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect } from 'react';
-import { Camera, ChefHat, Calendar, MessageCircle, LayoutDashboard, UtensilsCrossed, Menu, X, ArrowRight } from 'lucide-react';
+import { Camera, ChefHat, Calendar, ArrowLeft, History, User, Search } from 'lucide-react';
 import PhotoAnalyzer from './components/PhotoAnalyzer';
 import RecipeFinder from './components/RecipeFinder';
 import MealPlanner from './components/MealPlanner';
@@ -8,17 +9,26 @@ import ProgressChart from './components/ProgressChart';
 import { AppView } from './types';
 
 const App: React.FC = () => {
-  const [currentView, setCurrentView] = useState<AppView>(AppView.DASHBOARD);
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const [username, setUsername] = useState<string>('');
+  const [currentView, setCurrentView] = useState<AppView | 'HOME'>('HOME');
+  const [username, setUsername] = useState<string>('Гость');
+  const [initialChatMessage, setInitialChatMessage] = useState<string>('');
+  
+  // Capability Rotation State
+  const [capabilityIndex, setCapabilityIndex] = useState(0);
+  const [isCapabilityVisible, setIsCapabilityVisible] = useState(true);
+
+  const capabilities = [
+    "Посчитать калории по фото 📸",
+    "Составить меню на неделю 📅",
+    "Придумать рецепт ужина 🍳",
+    "Организовать стол для гостей 🥂",
+    "Найти замену продуктам 🥑"
+  ];
 
   useEffect(() => {
-    // Initialize Telegram Web App
     if (window.Telegram?.WebApp) {
       window.Telegram.WebApp.ready();
-      window.Telegram.WebApp.expand(); // Open full height
-      
-      // Get user name if available
+      window.Telegram.WebApp.expand();
       const user = window.Telegram.WebApp.initDataUnsafe?.user;
       if (user?.first_name) {
         setUsername(user.first_name);
@@ -26,257 +36,204 @@ const App: React.FC = () => {
     }
   }, []);
 
-  const renderContent = () => {
-    switch (currentView) {
-      case AppView.PHOTO_ANALYZER:
-        return <PhotoAnalyzer />;
-      case AppView.RECIPES:
-        return <RecipeFinder />;
-      case AppView.MEAL_PLANNER:
-        return <MealPlanner />;
-      case AppView.CHAT:
-        return <ChatAssistant />;
-      case AppView.DASHBOARD:
-      default:
-        return <Dashboard onViewChange={setCurrentView} username={username} />;
+  // Effect for rotating text
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setIsCapabilityVisible(false); // Start fade out
+      setTimeout(() => {
+        setCapabilityIndex((prev) => (prev + 1) % capabilities.length);
+        setIsCapabilityVisible(true); // Start fade in
+      }, 500); // Wait for fade out to finish (matches CSS duration)
+    }, 3500); // Change every 3.5 seconds
+
+    return () => clearInterval(interval);
+  }, []);
+
+  const triggerHaptic = () => {
+    if (window.Telegram?.WebApp?.HapticFeedback) {
+      window.Telegram.WebApp.HapticFeedback.impactOccurred('medium');
     }
   };
 
-  const closeMobileMenu = () => setIsMobileMenuOpen(false);
+  const handleNavigate = (view: AppView) => {
+    triggerHaptic();
+    setCurrentView(view);
+  };
+
+  const renderContent = () => {
+    const commonClasses = "min-h-screen bg-[#F2F6F7] pb-10 pt-24 px-4 animate-slide-up absolute inset-0 z-40 overflow-y-auto";
+    const Header = ({ title }: { title: string }) => (
+      <div className="fixed top-0 left-0 right-0 z-50 bg-[#F2F6F7]/90 backdrop-blur-xl px-6 pt-[calc(env(safe-area-inset-top)+20px)] pb-4 flex items-center shadow-sm transition-all">
+         <button 
+           onClick={() => setCurrentView('HOME')}
+           className="mr-4 p-2 bg-white rounded-full hover:bg-gray-100 transition-colors shadow-sm"
+         >
+           <ArrowLeft className="w-6 h-6 text-gray-800" />
+         </button>
+         <h2 className="text-3xl font-heading font-bold text-gray-900 leading-none">{title}</h2>
+      </div>
+    );
+
+    switch (currentView) {
+      case AppView.PHOTO_ANALYZER:
+        return (
+          <div className={commonClasses}>
+            <Header title="Сканер" />
+            <PhotoAnalyzer />
+          </div>
+        );
+      case AppView.RECIPES:
+        return (
+          <div className={commonClasses}>
+            <Header title="Рецепты" />
+            <RecipeFinder />
+          </div>
+        );
+      case AppView.MEAL_PLANNER:
+        return (
+          <div className={commonClasses}>
+             <Header title="Меню" />
+            <MealPlanner />
+          </div>
+        );
+      case AppView.CHAT:
+        return (
+          <div className="fixed inset-0 z-50 bg-white animate-slide-up flex flex-col">
+             <div className="px-4 py-4 pt-[calc(env(safe-area-inset-top)+10px)] flex items-center border-b border-gray-100 bg-white">
+                <button 
+                   onClick={() => setCurrentView('HOME')}
+                   className="mr-4 p-2 bg-gray-50 rounded-full"
+                 >
+                   <ArrowLeft className="w-6 h-6 text-gray-800" />
+                 </button>
+                 <span className="font-heading font-bold text-xl">AI Шеф</span>
+             </div>
+             <div className="flex-1 bg-gray-50">
+               <ChatAssistant 
+                  initialMessage={initialChatMessage} 
+                  onClearInitial={() => setInitialChatMessage('')} 
+                />
+             </div>
+          </div>
+        );
+      case AppView.HISTORY: 
+         return (
+            <div className={commonClasses}>
+               <Header title="История" />
+               <ProgressChart />
+            </div>
+         );
+      default:
+        return null;
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-[#F8FAFC]">
-      {/* Mobile Header */}
-      <div className="md:hidden bg-white/80 backdrop-blur-xl sticky top-0 z-40 px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-         <div className="flex items-center gap-2" onClick={() => setCurrentView(AppView.DASHBOARD)}>
-            <AppLogoSmall />
-         </div>
-         <button onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)} className="p-2 text-gray-600">
-           {isMobileMenuOpen ? <X /> : <Menu />}
-         </button>
+    <div className="relative min-h-screen w-full overflow-hidden bg-transparent">
+      
+      {/* HOME SCREEN CONTAINER */}
+      <div 
+        className={`
+          flex flex-col h-full min-h-screen px-6 pt-[calc(env(safe-area-inset-top)+20px)] pb-[env(safe-area-inset-bottom)]
+          transition-all duration-700 ease-[cubic-bezier(0.32,0.72,0,1)]
+          ${currentView !== 'HOME' ? 'scale-[0.85] opacity-50 blur-sm pointer-events-none' : 'scale-100 opacity-100 blur-0'}
+        `}
+      >
+        {/* Top Icons */}
+        <div className="flex justify-between items-center relative z-20">
+           <button 
+             onClick={() => handleNavigate(AppView.HISTORY)}
+             className="w-12 h-12 bg-white/60 backdrop-blur-md rounded-full flex items-center justify-center shadow-lg shadow-gray-200/20 active:scale-95 transition-transform"
+           >
+             <History className="w-5 h-5 text-gray-700" />
+           </button>
+           <button className="w-12 h-12 bg-white/60 backdrop-blur-md rounded-full flex items-center justify-center shadow-lg shadow-gray-200/20 active:scale-95 transition-transform">
+             <User className="w-5 h-5 text-gray-700" />
+           </button>
+        </div>
+
+        {/* Hero Greeting */}
+        <div className="flex-1 flex flex-col items-center justify-start pt-24 text-center z-10">
+           <h1 className="text-5xl md:text-6xl font-heading font-extrabold text-[#1a2e35] tracking-tight leading-[1.1] mb-4 animate-pop-in">
+             Привет,<br />{username}
+           </h1>
+           
+           <div className="h-8 flex items-center justify-center overflow-hidden">
+             <p 
+               className={`
+                 text-xl text-gray-500 font-medium transition-all duration-500 ease-in-out transform
+                 ${isCapabilityVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}
+               `}
+             >
+               {capabilities[capabilityIndex]}
+             </p>
+           </div>
+        </div>
+
+        {/* FAN NAVIGATION CONTAINER */}
+        <div className="relative w-full max-w-xs mx-auto h-[260px] mb-8">
+           
+           {/* SEARCH BUTTON (Floating Above) */}
+           <div className="absolute -top-12 left-1/2 -translate-x-1/2 z-40 animate-float">
+              <button 
+                onClick={() => handleNavigate(AppView.CHAT)}
+                className="w-20 h-20 bg-[#1a1a1a] rounded-full flex items-center justify-center text-white shadow-2xl shadow-gray-900/20 border-4 border-[#eef2f3] active:scale-90 transition-transform duration-300 group"
+              >
+                <Search className="w-8 h-8 group-hover:scale-110 transition-transform" strokeWidth={2.5} />
+              </button>
+           </div>
+
+           {/* --- LEFT CARD (Recipes) --- */}
+           <div 
+              onClick={() => handleNavigate(AppView.RECIPES)}
+              className="absolute bottom-4 left-0 w-[110px] h-[150px] bg-white rounded-[24px] shadow-xl shadow-purple-900/5 flex flex-col items-center justify-center p-2 cursor-pointer z-10 fan-card hover:z-20 hover:scale-105"
+              style={{ transformOrigin: 'bottom right', transform: 'rotate(-15deg) translateY(10px)' }}
+           >
+              {/* Counter-Rotate Content */}
+              <div style={{ transform: 'rotate(15deg)' }} className="flex flex-col items-center gap-3">
+                <div className="w-12 h-12 bg-purple-50 rounded-2xl flex items-center justify-center text-purple-600">
+                  <ChefHat className="w-6 h-6" />
+                </div>
+                <span className="font-heading font-bold text-sm text-gray-600">Рецепты</span>
+              </div>
+           </div>
+
+           {/* --- RIGHT CARD (Menu) --- */}
+           <div 
+              onClick={() => handleNavigate(AppView.MEAL_PLANNER)}
+              className="absolute bottom-4 right-0 w-[110px] h-[150px] bg-white rounded-[24px] shadow-xl shadow-blue-900/5 flex flex-col items-center justify-center p-2 cursor-pointer z-10 fan-card hover:z-20 hover:scale-105"
+              style={{ transformOrigin: 'bottom left', transform: 'rotate(15deg) translateY(10px)' }}
+           >
+               {/* Counter-Rotate Content */}
+               <div style={{ transform: 'rotate(-15deg)' }} className="flex flex-col items-center gap-3">
+                <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600">
+                  <Calendar className="w-6 h-6" />
+                </div>
+                <span className="font-heading font-bold text-sm text-gray-600">Меню</span>
+              </div>
+           </div>
+
+           {/* --- CENTER CARD (Scan) --- */}
+           <div 
+              onClick={() => handleNavigate(AppView.PHOTO_ANALYZER)}
+              className="absolute bottom-8 left-1/2 -translate-x-1/2 w-[120px] h-[160px] bg-white rounded-[28px] shadow-2xl shadow-emerald-900/10 flex flex-col items-center justify-center p-2 cursor-pointer z-30 fan-card hover:scale-105"
+           >
+              <div className="flex flex-col items-center gap-4 pt-4">
+                <div className="w-14 h-14 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600 shadow-sm">
+                  <Camera className="w-7 h-7" />
+                </div>
+                <span className="font-heading font-bold text-sm text-gray-800">Сканер</span>
+              </div>
+           </div>
+
+        </div>
       </div>
 
-      {/* Mobile Fullscreen Menu */}
-      {isMobileMenuOpen && (
-        <div className="fixed inset-0 z-30 bg-white pt-20 px-6 space-y-4 md:hidden animate-fade-in">
-           <NavButton active={currentView === AppView.DASHBOARD} onClick={() => { setCurrentView(AppView.DASHBOARD); closeMobileMenu(); }} icon={<LayoutDashboard />} label="Главная" />
-           <NavButton active={currentView === AppView.PHOTO_ANALYZER} onClick={() => { setCurrentView(AppView.PHOTO_ANALYZER); closeMobileMenu(); }} icon={<Camera />} label="Сканер Еды" />
-           <NavButton active={currentView === AppView.RECIPES} onClick={() => { setCurrentView(AppView.RECIPES); closeMobileMenu(); }} icon={<ChefHat />} label="Шеф-Повар" />
-           <NavButton active={currentView === AppView.MEAL_PLANNER} onClick={() => { setCurrentView(AppView.MEAL_PLANNER); closeMobileMenu(); }} icon={<Calendar />} label="План Питания" />
-           <NavButton active={currentView === AppView.CHAT} onClick={() => { setCurrentView(AppView.CHAT); closeMobileMenu(); }} icon={<MessageCircle />} label="Чат с Нутрициологом" />
-        </div>
-      )}
+      {/* OVERLAY VIEWS */}
+      {renderContent()}
 
-      {/* Sidebar Desktop */}
-      <nav className="hidden md:flex flex-col w-72 fixed left-0 top-0 bottom-0 bg-white border-r border-gray-100 z-30 shadow-[4px_0_24px_rgba(0,0,0,0.02)]">
-        <div className="p-8 pb-4">
-           <AppLogoLarge />
-        </div>
-        
-        <div className="flex-1 px-4 py-6 space-y-1.5">
-          <NavButton 
-            active={currentView === AppView.DASHBOARD} 
-            onClick={() => setCurrentView(AppView.DASHBOARD)} 
-            icon={<LayoutDashboard />} 
-            label="Главная" 
-          />
-          <div className="pt-4 pb-2 px-4 text-xs font-semibold text-gray-400 uppercase tracking-wider">Функции</div>
-          <NavButton 
-            active={currentView === AppView.PHOTO_ANALYZER} 
-            onClick={() => setCurrentView(AppView.PHOTO_ANALYZER)} 
-            icon={<Camera />} 
-            label="Сканер Еды" 
-          />
-          <NavButton 
-            active={currentView === AppView.RECIPES} 
-            onClick={() => setCurrentView(AppView.RECIPES)} 
-            icon={<ChefHat />} 
-            label="Шеф-Повар" 
-          />
-          <NavButton 
-            active={currentView === AppView.MEAL_PLANNER} 
-            onClick={() => setCurrentView(AppView.MEAL_PLANNER)} 
-            icon={<Calendar />} 
-            label="План Питания" 
-          />
-          <NavButton 
-            active={currentView === AppView.CHAT} 
-            onClick={() => setCurrentView(AppView.CHAT)} 
-            icon={<MessageCircle />} 
-            label="AI Чат" 
-          />
-        </div>
-        
-        <div className="p-6">
-          <div className="bg-emerald-50 rounded-2xl p-4 border border-emerald-100">
-            <h4 className="font-heading font-bold text-emerald-900 mb-1">Нужна помощь?</h4>
-            <p className="text-xs text-emerald-700 mb-3">Спросите AI диетолога о чем угодно.</p>
-            <button 
-              onClick={() => setCurrentView(AppView.CHAT)}
-              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold py-2 rounded-lg transition-colors"
-            >
-              Начать чат
-            </button>
-          </div>
-        </div>
-      </nav>
-
-      {/* Main Content */}
-      <main className="md:pl-72 min-h-screen transition-all duration-300 ease-in-out">
-        <div className="max-w-7xl mx-auto p-4 md:p-8 lg:p-10">
-          {renderContent()}
-        </div>
-      </main>
     </div>
   );
 };
-
-const Dashboard: React.FC<{ onViewChange: (view: AppView) => void, username?: string }> = ({ onViewChange, username }) => (
-  <div className="space-y-8 animate-fade-in pb-10">
-    {/* Hero Section */}
-    <div className="bg-gradient-to-br from-gray-900 to-gray-800 rounded-[2.5rem] p-8 md:p-12 text-white shadow-2xl shadow-gray-200 relative overflow-hidden group">
-      <div className="relative z-10 max-w-2xl">
-        <span className="inline-block px-4 py-1.5 rounded-full bg-white/10 backdrop-blur-md border border-white/20 text-sm font-medium mb-4 text-emerald-300">
-          ✨ Твой персональный помощник
-        </span>
-        <h1 className="text-4xl md:text-5xl font-heading font-bold mb-4 leading-tight">
-          Привет{username ? `, ${username}` : ''}! <br/>Что приготовим сегодня?
-        </h1>
-        <p className="text-gray-300 text-lg mb-8 leading-relaxed max-w-lg">
-          Загрузите фото продуктов или готового блюда, и я помогу рассчитать калории или придумать рецепт.
-        </p>
-        <div className="flex flex-wrap gap-4">
-          <button 
-            onClick={() => onViewChange(AppView.PHOTO_ANALYZER)}
-            className="flex items-center gap-2 bg-emerald-500 hover:bg-emerald-400 text-white px-8 py-4 rounded-2xl font-bold transition-all transform hover:-translate-y-1 shadow-lg shadow-emerald-500/20"
-          >
-            <Camera className="w-5 h-5" />
-            Сканировать еду
-          </button>
-          <button 
-            onClick={() => onViewChange(AppView.RECIPES)}
-            className="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white backdrop-blur-md px-8 py-4 rounded-2xl font-bold transition-all border border-white/10"
-          >
-            <ChefHat className="w-5 h-5" />
-            Найти рецепт
-          </button>
-        </div>
-      </div>
-      
-      {/* Abstract Background Decoration */}
-      <div className="absolute right-0 top-0 w-[500px] h-[500px] bg-emerald-500/20 rounded-full blur-[100px] -translate-y-1/2 translate-x-1/4 group-hover:bg-emerald-500/30 transition-all duration-1000"></div>
-      <div className="absolute right-20 bottom-0 w-[300px] h-[300px] bg-blue-500/20 rounded-full blur-[80px] translate-y-1/3 group-hover:bg-blue-500/30 transition-all duration-1000"></div>
-      
-      {/* Floating 3D-like Icon */}
-      <div className="absolute -right-6 md:right-10 top-1/2 -translate-y-1/2 opacity-20 md:opacity-100 transform rotate-12 transition-transform duration-700 group-hover:rotate-6 group-hover:scale-110">
-        <UtensilsCrossed size={320} className="text-white/5" />
-      </div>
-    </div>
-
-    {/* Stats & Charts Area */}
-    <div className="grid lg:grid-cols-3 gap-8">
-      <div className="lg:col-span-3">
-        <ProgressChart />
-      </div>
-    </div>
-
-    {/* Features Grid (Bento Box Style) */}
-    <div>
-      <h2 className="text-2xl font-heading font-bold text-gray-800 mb-6 flex items-center gap-2">
-        Быстрый доступ
-      </h2>
-      <div className="grid md:grid-cols-3 gap-6">
-        <BentoCard 
-          title="Умный Повар" 
-          desc="Рецепты из того, что есть в холодильнике." 
-          icon={<ChefHat className="w-8 h-8 text-white" />}
-          onClick={() => onViewChange(AppView.RECIPES)}
-          bgClass="bg-gradient-to-br from-orange-400 to-red-500"
-          delay="0"
-        />
-        <BentoCard 
-          title="План Питания" 
-          desc="Меню и список покупок на неделю." 
-          icon={<Calendar className="w-8 h-8 text-white" />}
-          onClick={() => onViewChange(AppView.MEAL_PLANNER)}
-          bgClass="bg-gradient-to-br from-blue-400 to-indigo-500"
-          delay="100"
-        />
-        <BentoCard 
-          title="AI Нутрициолог" 
-          desc="Задайте любой вопрос о здоровье." 
-          icon={<MessageCircle className="w-8 h-8 text-white" />}
-          onClick={() => onViewChange(AppView.CHAT)}
-          bgClass="bg-gradient-to-br from-purple-400 to-pink-500"
-          delay="200"
-        />
-      </div>
-    </div>
-  </div>
-);
-
-const BentoCard: React.FC<any> = ({ title, desc, icon, onClick, bgClass, delay }) => (
-  <div 
-    onClick={onClick}
-    className="group relative overflow-hidden rounded-[2rem] h-64 cursor-pointer hover:shadow-xl hover:shadow-gray-200 transition-all duration-300 transform hover:-translate-y-1"
-    style={{ animationDelay: `${delay}ms` }}
-  >
-    <div className={`absolute inset-0 ${bgClass} opacity-90 transition-opacity`}></div>
-    <div className="absolute inset-0 bg-black/5 group-hover:bg-transparent transition-colors"></div>
-    
-    <div className="relative h-full p-8 flex flex-col justify-between z-10 text-white">
-      <div className="bg-white/20 w-16 h-16 rounded-2xl flex items-center justify-center backdrop-blur-md border border-white/20 shadow-inner">
-        {icon}
-      </div>
-      <div>
-        <h3 className="text-2xl font-heading font-bold mb-2">{title}</h3>
-        <p className="text-white/80 font-medium leading-snug">{desc}</p>
-      </div>
-      
-      <div className="absolute right-6 bottom-6 opacity-0 group-hover:opacity-100 transform translate-x-4 group-hover:translate-x-0 transition-all duration-300">
-         <div className="bg-white text-gray-900 rounded-full p-3 shadow-lg">
-            <ArrowRight className="w-5 h-5" />
-         </div>
-      </div>
-    </div>
-  </div>
-);
-
-const NavButton: React.FC<{ active: boolean; onClick: () => void; icon: React.ReactNode; label: string }> = ({ active, onClick, icon, label }) => (
-  <button
-    onClick={onClick}
-    className={`w-full flex items-center gap-3.5 px-5 py-4 rounded-2xl transition-all duration-200 group ${
-      active 
-        ? 'bg-emerald-50 text-emerald-700 font-bold shadow-sm shadow-emerald-100' 
-        : 'text-gray-500 hover:bg-gray-50 hover:text-gray-900 font-medium'
-    }`}
-  >
-    <div className={`transition-colors ${active ? 'text-emerald-600' : 'text-gray-400 group-hover:text-gray-600'}`}>
-      {React.cloneElement(icon as React.ReactElement<any>, { size: 22, strokeWidth: active ? 2.5 : 2 })}
-    </div>
-    {label}
-  </button>
-);
-
-const AppLogoLarge: React.FC = () => (
-  <div className="flex items-center gap-3">
-    <div className="w-10 h-10 bg-gradient-to-tr from-emerald-500 to-teal-400 rounded-xl flex items-center justify-center shadow-lg shadow-emerald-200 text-white">
-       <ChefHat size={24} strokeWidth={2.5} />
-    </div>
-    <div>
-      <h1 className="font-heading font-extrabold text-xl text-gray-900 leading-none">Шеф</h1>
-      <span className="text-xs font-bold text-gray-400 tracking-widest uppercase">в кармане</span>
-    </div>
-  </div>
-);
-
-const AppLogoSmall: React.FC = () => (
-  <div className="flex items-center gap-2">
-    <div className="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center text-white">
-       <ChefHat size={18} />
-    </div>
-    <span className="font-heading font-bold text-gray-900">Шеф</span>
-  </div>
-);
 
 export default App;
