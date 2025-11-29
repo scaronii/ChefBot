@@ -5,7 +5,16 @@ export enum AppView {
   RECIPES = 'RECIPES',
   MEAL_PLANNER = 'MEAL_PLANNER',
   CHAT = 'CHAT',
-  HISTORY = 'HISTORY'
+  HISTORY = 'HISTORY',
+  // New Views
+  WORKOUT_PLANNER = 'WORKOUT_PLANNER',
+  DOCUMENT_ANALYZER = 'DOCUMENT_ANALYZER'
+}
+
+export enum AgentMode {
+  CHEF = 'CHEF',
+  LAWYER = 'LAWYER',
+  FITNESS = 'FITNESS'
 }
 
 export interface MacroData {
@@ -15,7 +24,9 @@ export interface MacroData {
   fat: number;
 }
 
+// Chef Result
 export interface FoodAnalysisResult extends MacroData {
+  type: 'FOOD';
   foodName: string;
   description: string;
   confidence: string;
@@ -24,6 +35,31 @@ export interface FoodAnalysisResult extends MacroData {
     description: string;
   }[];
 }
+
+// Lawyer Result
+export interface DocumentAnalysisResult {
+  type: 'DOCUMENT';
+  title: string;
+  summary: string;
+  riskLevel: 'Low' | 'Medium' | 'High';
+  keyPoints: string[];
+  risks: string[];
+  recommendation: string;
+}
+
+// Fitness Result
+export interface EquipmentAnalysisResult {
+  type: 'EQUIPMENT';
+  equipmentName: string;
+  description: string;
+  targetMuscles: string[];
+  exercises: {
+    name: string;
+    tips: string;
+  }[];
+}
+
+export type UniversalAnalysisResult = FoodAnalysisResult | DocumentAnalysisResult | EquipmentAnalysisResult;
 
 export interface HistoryItem extends FoodAnalysisResult {
   id: string;
@@ -38,6 +74,7 @@ export interface Recipe {
   ingredients: string[];
   instructions: string[];
   difficulty: 'Easy' | 'Medium' | 'Hard';
+  missingIngredients?: string[];
 }
 
 export interface DayPlan {

@@ -1,5 +1,5 @@
 
-import { FoodAnalysisResult, Recipe, WeeklyPlan, ChatMessage } from "../types";
+import { UniversalAnalysisResult, Recipe, WeeklyPlan, ChatMessage, AgentMode } from "../types";
 
 // Helper to call our Vercel Serverless Function
 const callApi = async (action: string, payload: any) => {
@@ -24,28 +24,33 @@ const callApi = async (action: string, payload: any) => {
   }
 };
 
-// 1. Analyze Food Photo
-export const analyzeFoodImage = async (base64Image: string, mimeType: string): Promise<FoodAnalysisResult> => {
-  return callApi('analyze', { image: base64Image, mimeType });
+// 1. Universal Scanner (Food / Doc / Equipment)
+export const analyzeImage = async (base64Image: string, mimeType: string, agentMode: AgentMode): Promise<UniversalAnalysisResult> => {
+  return callApi('analyze', { image: base64Image, mimeType, agentMode });
 };
 
-// 2. Suggest Recipes from Ingredients
-export const suggestRecipes = async (ingredients: string): Promise<Recipe[]> => {
-  return callApi('recipes', { ingredients });
+// Legacy support alias
+export const analyzeFoodImage = async (base64Image: string, mimeType: string) => {
+  return analyzeImage(base64Image, mimeType, AgentMode.CHEF);
+}
+
+// 2. Suggest Recipes (Chef)
+export const suggestRecipes = async (ingredients: string, excludedRecipes: string[] = []): Promise<Recipe[]> => {
+  return callApi('recipes', { ingredients, excludedRecipes });
 };
 
-// 3. Generate Weekly Meal Plan
+// 3. Generate Weekly Meal Plan (Chef)
 export const generateWeeklyPlan = async (goal: string, preferences: string): Promise<WeeklyPlan> => {
   return callApi('plan', { goal, preferences });
 };
 
-// 4. Chat - Modified to use proxy (stateless)
-export const sendMessageToChat = async (message: string, history: ChatMessage[]) => {
+// 4. Chat - Supports Multi-Agent
+export const sendMessageToChat = async (message: string, history: ChatMessage[], agentMode: AgentMode) => {
   // Convert our frontend history types to simple objects for the API
   const historyPayload = history.map(h => ({
     role: h.role,
     text: h.text
   }));
 
-  return callApi('chat', { message, history: historyPayload });
+  return callApi('chat', { message, history: historyPayload, agentMode });
 };
