@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Dumbbell, Clock, Activity, Loader2, Sparkles, CheckCircle } from 'lucide-react';
 import { generateWorkoutPlan } from '../services/geminiService';

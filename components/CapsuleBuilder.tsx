@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Shirt, Sparkles, Loader2, Palette, Layers } from 'lucide-react';
 import { generateCapsuleWardrobe } from '../services/geminiService';

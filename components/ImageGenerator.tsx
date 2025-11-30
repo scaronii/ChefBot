@@ -1,5 +1,3 @@
-
-
 import React, { useState } from 'react';
 import { Palette, Download, Loader2, Sparkles, Image as ImageIcon, Wand2 } from 'lucide-react';
 import { generateImage } from '../services/geminiService';

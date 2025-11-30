@@ -1,6 +1,5 @@
-
-
 import { UniversalAnalysisResult, Recipe, WeeklyPlan, ChatMessage, AgentMode, UserProfile, WorkoutPlan, TripPlan, CapsuleWardrobe, Attachment } from "../types";
+import { updateLocalBalance } from "./tokenService";
 
 // Helper to call our Vercel Serverless Function
 const callApi = async (action: string, payload: any) => {
@@ -13,12 +12,18 @@ const callApi = async (action: string, payload: any) => {
       body: JSON.stringify({ action, payload }),
     });
 
+    const data = await response.json();
+
     if (!response.ok) {
-      const errorData = await response.json().catch(() => ({}));
-      throw new Error(errorData.error || `Server error: ${response.status}`);
+      throw new Error(data.error || data.message || `Server error: ${response.status}`);
+    }
+    
+    // Update local token balance if server provided new one
+    if (data.userBalance !== undefined) {
+      updateLocalBalance(data.userBalance);
     }
 
-    return await response.json();
+    return data;
   } catch (error: any) {
     console.error("API Call Failed:", error);
     throw error;

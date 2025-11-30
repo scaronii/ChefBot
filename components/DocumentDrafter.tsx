@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { FileText, Sparkles, Copy, Check, Scale, ArrowRight, Loader2 } from 'lucide-react';
 import { draftDocument } from '../services/geminiService';

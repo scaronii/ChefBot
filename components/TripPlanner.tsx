@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Globe, MapPin, Calendar, Wallet, Loader2, Sparkles, Sun, Moon, Coffee } from 'lucide-react';
 import { planTrip } from '../services/geminiService';

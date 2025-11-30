@@ -1,5 +1,3 @@
-
-
 export enum AppView {
   DASHBOARD = 'DASHBOARD',
   PHOTO_ANALYZER = 'PHOTO_ANALYZER',
@@ -229,6 +227,7 @@ export interface ArtistProfile {
 
 export interface UserProfile {
   name: string;
+  telegramId?: string;
   lastVisit: string; // ISO Date string
   chef: ChefProfile;
   lawyer: LawyerProfile;
@@ -263,6 +262,7 @@ declare global {
         };
         initDataUnsafe?: {
           user?: {
+            id: string;
             first_name: string;
             last_name?: string;
             username?: string;

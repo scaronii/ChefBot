@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Camera, ChefHat, Calendar, ArrowLeft, History, User, Search, Scale, Dumbbell, FileText, Activity, Globe, Shirt, X, Grid, MapPin, Layers, MessageCircle, Sparkles, BrainCircuit, Palette, Image as ImageIcon } from 'lucide-react';
+import { Camera, ChefHat, Calendar, ArrowLeft, History, User, Search, Scale, Dumbbell, FileText, Activity, Globe, Shirt, X, Grid, MapPin, Layers, MessageCircle, Sparkles, BrainCircuit, Palette, Image as ImageIcon, Zap } from 'lucide-react';
 import PhotoAnalyzer from './components/PhotoAnalyzer';
 import RecipeFinder from './components/RecipeFinder';
 import MealPlanner from './components/MealPlanner';
@@ -11,6 +11,8 @@ import WorkoutPlanner from './components/WorkoutPlanner';
 import TripPlanner from './components/TripPlanner';
 import CapsuleBuilder from './components/CapsuleBuilder';
 import ImageGenerator from './components/ImageGenerator';
+import TokenShop from './components/TokenShop';
+import { getTokenBalance, TOKEN_EVENT } from './services/tokenService';
 import { AppView, AgentMode, UserProfile } from './types';
 
 // Default Profile
@@ -30,6 +32,8 @@ const App: React.FC = () => {
   const [activeAgent, setActiveAgent] = useState<AgentMode>(AgentMode.UNIVERSAL);
   
   const [showAppGrid, setShowAppGrid] = useState(false);
+  const [showTokenShop, setShowTokenShop] = useState(false);
+  const [tokenBalance, setTokenBalance] = useState(0);
   const [username, setUsername] = useState<string>('Гость');
   const [initialChatMessage, setInitialChatMessage] = useState<string>('');
   
@@ -51,8 +55,13 @@ const App: React.FC = () => {
     [AgentMode.ARTIST]: ["Создать изображение 🎨", "Стилизовать фото 📸", "Дизайн идеи 🖌"]
   };
 
-  // Load Profile & Init Telegram
+  // Load Profile, Token Balance & Init Telegram
   useEffect(() => {
+    // Load Token Balance
+    setTokenBalance(getTokenBalance());
+    const handleBalanceChange = () => setTokenBalance(getTokenBalance());
+    window.addEventListener(TOKEN_EVENT, handleBalanceChange);
+
     // Load Profile
     const stored = localStorage.getItem('nutrigen_user_profile');
     let loadedProfile = DEFAULT_PROFILE;
@@ -68,9 +77,15 @@ const App: React.FC = () => {
       window.Telegram.WebApp.ready();
       window.Telegram.WebApp.expand();
       const tgUser = window.Telegram.WebApp.initDataUnsafe?.user;
-      if (tgUser?.first_name) {
-        loadedProfile.name = tgUser.first_name;
-        setUsername(tgUser.first_name);
+      if (tgUser) {
+        if (tgUser.first_name) {
+          loadedProfile.name = tgUser.first_name;
+          setUsername(tgUser.first_name);
+        }
+        // Save Telegram ID for backend balance check
+        if (tgUser.id) {
+           loadedProfile.telegramId = tgUser.id.toString();
+        }
       }
     }
 
@@ -78,6 +93,7 @@ const App: React.FC = () => {
     localStorage.setItem('nutrigen_user_profile', JSON.stringify(loadedProfile));
 
     setUserProfile(loadedProfile);
+    return () => window.removeEventListener(TOKEN_EVENT, handleBalanceChange);
   }, []);
 
   // Text Rotation Logic
@@ -206,6 +222,11 @@ const App: React.FC = () => {
                      </button>
                      <span className="font-heading font-bold text-xl">{getAgentTitle()}</span>
                 </div>
+                 {/* Token Balance Mini */}
+                <button onClick={() => setShowTokenShop(true)} className="flex items-center gap-1.5 bg-amber-50 border border-amber-100 px-3 py-1.5 rounded-full">
+                    <Zap className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+                    <span className="text-xs font-bold text-gray-800">{tokenBalance}</span>
+                </button>
              </div>
              <div className="flex-1 bg-gray-50">
                <ChatAssistant initialMessage={initialChatMessage} onClearInitial={() => setInitialChatMessage('')} agentMode={activeAgent} userProfile={userProfile} />
@@ -219,31 +240,24 @@ const App: React.FC = () => {
   const getMainActionButton = () => {
     const commonClass = "w-full py-4 bg-white rounded-2xl shadow-lg shadow-gray-200/50 text-gray-800 font-bold text-lg flex items-center justify-center gap-3 hover:scale-105 active:scale-95 transition-all";
     
-    // LAWYER: Chat is main
     if (activeAgent === AgentMode.LAWYER) {
       return <button onClick={() => setCurrentView(AppView.CHAT)} className={commonClass}><Search className={`w-6 h-6 ${style.btnClass}`}/> Чат с Юристом</button>;
     }
-    // FITNESS: Chat is main
     if (activeAgent === AgentMode.FITNESS) {
       return <button onClick={() => setCurrentView(AppView.CHAT)} className={commonClass}><Activity className={`w-6 h-6 ${style.btnClass}`}/> Чат с Тренером</button>;
     }
-    // TRAVEL: Chat is main
     if (activeAgent === AgentMode.TRAVEL) {
       return <button onClick={() => setCurrentView(AppView.CHAT)} className={commonClass}><Globe className={`w-6 h-6 ${style.btnClass}`}/> Чат с Гидом</button>;
     }
-    // STYLIST: Chat is main
     if (activeAgent === AgentMode.STYLIST) {
       return <button onClick={() => setCurrentView(AppView.CHAT)} className={commonClass}><Shirt className={`w-6 h-6 ${style.btnClass}`}/> Чат со Стилистом</button>;
     }
-     // ARTIST: Chat is main (UPDATED)
     if (activeAgent === AgentMode.ARTIST) {
       return <button onClick={() => setCurrentView(AppView.CHAT)} className={commonClass}><MessageCircle className={`w-6 h-6 ${style.btnClass}`}/> Чат с AI</button>;
     }
-    // UNIVERSAL: Chat is main
     if (activeAgent === AgentMode.UNIVERSAL) {
       return <button onClick={() => setCurrentView(AppView.CHAT)} className={commonClass}><MessageCircle className={`w-6 h-6 ${style.btnClass}`}/> Чат с GPT</button>;
     }
-    // CHEF: Chat is main
     return <button onClick={() => setCurrentView(AppView.CHAT)} className={commonClass}><Search className={`w-6 h-6 ${style.btnClass}`}/> Чат с Шефом</button>;
   }
 
@@ -270,6 +284,10 @@ const App: React.FC = () => {
            </div>
            
            <div className="flex gap-2">
+                <button onClick={() => setShowTokenShop(true)} className="h-12 px-4 bg-amber-100/80 backdrop-blur-md rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform border border-amber-200 gap-2">
+                 <Zap className="w-5 h-5 text-amber-600 fill-amber-600" />
+                 <span className="font-bold text-amber-900">{tokenBalance}</span>
+               </button>
                <button onClick={() => setCurrentView(AppView.PROFILE)} className="w-12 h-12 bg-white/60 backdrop-blur-md rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform">
                  <User className="w-5 h-5 text-gray-700" />
                </button>

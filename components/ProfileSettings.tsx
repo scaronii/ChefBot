@@ -1,5 +1,3 @@
-
-
 import React, { useState } from 'react';
 import { UserProfile, AgentMode } from '../types';
 import { ChefHat, Scale, Activity, Globe, Shirt, Save, Check, Palette } from 'lucide-react';

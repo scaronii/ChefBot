@@ -1,4 +1,3 @@
-
 import { FoodAnalysisResult, HistoryItem } from '../types';
 
 const STORAGE_KEY = 'nutrigen_history_v1';
