@@ -1,4 +1,5 @@
 
+
 export enum AppView {
   DASHBOARD = 'DASHBOARD',
   PHOTO_ANALYZER = 'PHOTO_ANALYZER',
@@ -20,7 +21,8 @@ export enum AgentMode {
   LAWYER = 'LAWYER',
   FITNESS = 'FITNESS',
   TRAVEL = 'TRAVEL',
-  STYLIST = 'STYLIST'
+  STYLIST = 'STYLIST',
+  UNIVERSAL = 'UNIVERSAL'
 }
 
 export interface MacroData {
@@ -85,7 +87,14 @@ export interface FashionAnalysisResult {
   advice: string;
 }
 
-export type UniversalAnalysisResult = FoodAnalysisResult | DocumentAnalysisResult | EquipmentAnalysisResult | LandmarkAnalysisResult | FashionAnalysisResult;
+// General Result
+export interface GeneralAnalysisResult {
+  type: 'GENERAL';
+  description: string;
+  tags: string[];
+}
+
+export type UniversalAnalysisResult = FoodAnalysisResult | DocumentAnalysisResult | EquipmentAnalysisResult | LandmarkAnalysisResult | FashionAnalysisResult | GeneralAnalysisResult;
 
 export interface HistoryItem extends FoodAnalysisResult {
   id: string;

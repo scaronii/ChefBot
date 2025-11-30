@@ -1,6 +1,5 @@
-
 import React, { useState, useEffect } from 'react';
-import { Camera, ChefHat, Calendar, ArrowLeft, History, User, Search, Scale, Dumbbell, FileText, Activity, Globe, Shirt, X, Grid, MapPin, Zap, Layers } from 'lucide-react';
+import { Camera, ChefHat, Calendar, ArrowLeft, History, User, Search, Scale, Dumbbell, FileText, Activity, Globe, Shirt, X, Grid, MapPin, Zap, Layers, MessageCircle, Sparkles, BrainCircuit } from 'lucide-react';
 import PhotoAnalyzer from './components/PhotoAnalyzer';
 import RecipeFinder from './components/RecipeFinder';
 import MealPlanner from './components/MealPlanner';
@@ -27,29 +26,32 @@ const DEFAULT_PROFILE: UserProfile = {
 
 const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<AppView | 'HOME'>('HOME');
-  const [activeAgent, setActiveAgent] = useState<AgentMode>(AgentMode.CHEF);
+  const [activeAgent, setActiveAgent] = useState<AgentMode>(AgentMode.UNIVERSAL);
+  
   const [showAppGrid, setShowAppGrid] = useState(false);
+  const [username, setUsername] = useState<string>('Гость');
   const [initialChatMessage, setInitialChatMessage] = useState<string>('');
+  
+  // Rotating Text State
+  const [capabilityIndex, setCapabilityIndex] = useState(0);
+  const [isCapabilityVisible, setIsCapabilityVisible] = useState(true);
   
   // Profile State
   const [userProfile, setUserProfile] = useState<UserProfile>(DEFAULT_PROFILE);
 
-  // Rotating Text State
-  const [capabilityIndex, setCapabilityIndex] = useState(0);
-  const [isCapabilityVisible, setIsCapabilityVisible] = useState(true);
-
   // Define Capabilities per Agent
   const capabilities = {
+    [AgentMode.UNIVERSAL]: ["Любой вопрос 🧠", "Генерация идей 💡", "Универсальный помощник 🤖"],
     [AgentMode.CHEF]: ["Посчитать калории 📸", "Составить меню 📅", "Рецепт ужина 🍳"],
-    [AgentMode.LAWYER]: ["Чат с юристом ⚖️", "Проверка документов 📄", "Составить претензию 📝"],
+    [AgentMode.LAWYER]: ["Проверить договор ⚖️", "Составить претензию 📝", "Вопрос юристу 🎓"],
     [AgentMode.FITNESS]: ["Программа тренировок 💪", "Анализ техники 🏋️", "Совет по питанию 🥗"],
-    [AgentMode.TRAVEL]: ["Спланировать маршрут ✈️", "Узнать историю места 🏛", "Советы туристам 🎒"],
-    [AgentMode.STYLIST]: ["Собрать капсулу 🧥", "Подобрать цвета 🎨", "Оценить лук ✨"]
+    [AgentMode.TRAVEL]: ["Маршрут поездки ✈️", "Гид по городу 🏛", "Советы туристам 🎒"],
+    [AgentMode.STYLIST]: ["Оценка лука 👗", "Капсула гардероба 🎨", "Советы по стилю ✨"]
   };
 
   // Load Profile & Init Telegram
   useEffect(() => {
-    // Load from LocalStorage
+    // Load Profile
     const stored = localStorage.getItem('nutrigen_user_profile');
     let loadedProfile = DEFAULT_PROFILE;
     
@@ -64,7 +66,10 @@ const App: React.FC = () => {
       window.Telegram.WebApp.ready();
       window.Telegram.WebApp.expand();
       const tgUser = window.Telegram.WebApp.initDataUnsafe?.user;
-      if (tgUser?.first_name) loadedProfile.name = tgUser.first_name;
+      if (tgUser?.first_name) {
+        loadedProfile.name = tgUser.first_name;
+        setUsername(tgUser.first_name);
+      }
     }
 
     // Streak Logic
@@ -78,20 +83,17 @@ const App: React.FC = () => {
       if (yesterday.toDateString() === lastVisitDate) {
         loadedProfile.streak += 1;
       } else {
-        loadedProfile.streak = 1;
+        loadedProfile.streak = 1; // Reset or start streak
+        // Allow streak to be 1 if it's the first visit ever or lost streak
       }
+      if (loadedProfile.lastVisit === new Date(0).toISOString()) loadedProfile.streak = 1; // First launch
+
       loadedProfile.lastVisit = new Date().toISOString();
       localStorage.setItem('nutrigen_user_profile', JSON.stringify(loadedProfile));
     }
 
     setUserProfile(loadedProfile);
   }, []);
-
-  // Save Profile Handler
-  const handleSaveProfile = (newProfile: UserProfile) => {
-    setUserProfile(newProfile);
-    localStorage.setItem('nutrigen_user_profile', JSON.stringify(newProfile));
-  };
 
   // Text Rotation Logic
   useEffect(() => {
@@ -104,6 +106,12 @@ const App: React.FC = () => {
     }, 3500);
     return () => clearInterval(interval);
   }, [activeAgent]);
+
+  // Save Profile Handler
+  const handleSaveProfile = (newProfile: UserProfile) => {
+    setUserProfile(newProfile);
+    localStorage.setItem('nutrigen_user_profile', JSON.stringify(newProfile));
+  };
 
   const triggerHaptic = () => {
     if (window.Telegram?.WebApp?.HapticFeedback) {
@@ -120,7 +128,6 @@ const App: React.FC = () => {
     }
   };
 
-  // Get Styling based on Agent
   const getAgentStyle = () => {
     switch (activeAgent) {
       case AgentMode.LAWYER: return { 
@@ -147,6 +154,12 @@ const App: React.FC = () => {
         subColor: 'text-pink-600',
         btnClass: 'text-pink-700'
       };
+      case AgentMode.UNIVERSAL: return { 
+        bgGradient: 'radial-gradient(at 0% 0%, #E0E7FF 0, transparent 50%), radial-gradient(at 100% 100%, #C7D2FE 0, transparent 50%)',
+        accentColor: 'text-indigo-900',
+        subColor: 'text-indigo-600',
+        btnClass: 'text-indigo-700'
+      };
       default: return { 
         bgGradient: 'radial-gradient(at 0% 0%, #D1FAE5 0, transparent 50%), radial-gradient(at 100% 100%, #ECFCCB 0, transparent 50%)',
         accentColor: 'text-[#1a2e35]',
@@ -160,6 +173,7 @@ const App: React.FC = () => {
 
   const getAgentTitle = () => {
      switch(activeAgent) {
+       case AgentMode.UNIVERSAL: return 'Universal GPT';
        case AgentMode.LAWYER: return 'AI Юрист';
        case AgentMode.FITNESS: return 'AI Тренер';
        case AgentMode.TRAVEL: return 'AI Гид';
@@ -192,11 +206,13 @@ const App: React.FC = () => {
     if (currentView === AppView.CHAT) {
       return (
         <div className="fixed inset-0 z-50 bg-white animate-slide-up flex flex-col">
-             <div className="px-4 py-4 pt-[calc(env(safe-area-inset-top)+10px)] flex items-center border-b border-gray-100 bg-white">
-                <button onClick={() => setCurrentView('HOME')} className="mr-4 p-2 bg-gray-50 rounded-full">
-                   <ArrowLeft className="w-6 h-6 text-gray-800" />
-                 </button>
-                 <span className="font-heading font-bold text-xl">{getAgentTitle()}</span>
+             <div className="px-4 py-4 pt-[calc(env(safe-area-inset-top)+10px)] flex items-center justify-between border-b border-gray-100 bg-white">
+                <div className="flex items-center">
+                    <button onClick={() => setCurrentView('HOME')} className="mr-3 p-2 bg-gray-50 rounded-full">
+                       <ArrowLeft className="w-6 h-6 text-gray-800" />
+                     </button>
+                     <span className="font-heading font-bold text-xl">{getAgentTitle()}</span>
+                </div>
              </div>
              <div className="flex-1 bg-gray-50">
                <ChatAssistant initialMessage={initialChatMessage} onClearInitial={() => setInitialChatMessage('')} agentMode={activeAgent} userProfile={userProfile} />
@@ -259,6 +275,19 @@ const App: React.FC = () => {
          </button>
       )
     }
+
+    // UNIVERSAL: Chat is main
+    if (activeAgent === AgentMode.UNIVERSAL) {
+      return (
+        <button 
+           onClick={() => setCurrentView(AppView.CHAT)} 
+           className="w-full py-4 bg-white rounded-2xl shadow-lg shadow-gray-200/50 text-gray-800 font-bold text-lg flex items-center justify-center gap-3 hover:scale-105 active:scale-95 transition-all"
+         >
+            <MessageCircle className={`w-6 h-6 ${style.btnClass}`}/>
+            Чат с GPT
+         </button>
+      )
+    }
     
     // CHEF: Chat is main
     return (
@@ -285,29 +314,45 @@ const App: React.FC = () => {
       >
         {/* Top Icons */}
         <div className="flex justify-between items-center relative z-20">
-           <button onClick={() => setCurrentView(AppView.HISTORY)} className="w-12 h-12 bg-white/60 backdrop-blur-md rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform">
-             <History className="w-5 h-5 text-gray-700" />
-           </button>
-           
-           {/* Streak Counter */}
-           <div className="flex items-center gap-1 bg-white/60 backdrop-blur-md px-3 py-1.5 rounded-full shadow-lg">
-              <Zap className="w-4 h-4 text-amber-500 fill-amber-500" />
-              <span className="text-sm font-bold text-gray-800">{userProfile.streak} дн</span>
+           <div className="flex gap-2">
+               <button onClick={() => setCurrentView(AppView.HISTORY)} className="w-12 h-12 bg-white/60 backdrop-blur-md rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform">
+                 <History className="w-5 h-5 text-gray-700" />
+               </button>
+               <button onClick={() => setShowAppGrid(true)} className="w-12 h-12 bg-white/60 backdrop-blur-md rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform">
+                 <Grid className="w-5 h-5 text-gray-700" />
+               </button>
            </div>
-
-           <button onClick={() => setCurrentView(AppView.PROFILE)} className="w-12 h-12 bg-white/60 backdrop-blur-md rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform">
-             <User className="w-5 h-5 text-gray-700" />
-           </button>
+           
+           <div className="flex gap-2">
+               <button onClick={() => setCurrentView(AppView.PROFILE)} className="w-12 h-12 bg-white/60 backdrop-blur-md rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform">
+                 <User className="w-5 h-5 text-gray-700" />
+               </button>
+           </div>
         </div>
 
         {/* Hero Greeting */}
         <div className="flex-1 flex flex-col items-center justify-center text-center z-10 -mt-20">
-           <div className={`mb-4 px-5 py-2 rounded-full text-xs font-bold uppercase tracking-wider bg-white/50 backdrop-blur-sm ${style.subColor} shadow-sm`}>
-             {activeAgent === AgentMode.LAWYER ? 'Юрист' : activeAgent === AgentMode.FITNESS ? 'Тренер' : activeAgent === AgentMode.TRAVEL ? 'Гид' : activeAgent === AgentMode.STYLIST ? 'Стилист' : 'Шеф-Повар'}
+           
+           <div className={`mb-4 px-5 py-2 rounded-full text-xs font-bold uppercase tracking-wider bg-white/50 backdrop-blur-sm ${style.subColor} shadow-sm flex items-center gap-2`}>
+             <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+             {activeAgent === AgentMode.UNIVERSAL ? 'AI Ассистент' : 
+              activeAgent === AgentMode.LAWYER ? 'Юридический Помощник' : 
+              activeAgent === AgentMode.FITNESS ? 'Фитнес Тренер' : 
+              activeAgent === AgentMode.TRAVEL ? 'Тревел Гид' :
+              activeAgent === AgentMode.STYLIST ? 'Фешн Стилист' : 'Персональный Шеф'}
            </div>
+
            <h1 className={`text-6xl font-heading font-extrabold ${style.accentColor} tracking-tight leading-[1.1] mb-4 animate-pop-in`}>
-             Привет,<br />{userProfile.name}
+             Привет,<br />{username}
            </h1>
+           
+           {/* Streak Badge */}
+           <div className="mb-6 animate-pop-in" style={{ animationDelay: '0.1s' }}>
+             <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-orange-100/50 rounded-full text-orange-700 text-xs font-bold border border-orange-200/50">
+               <Zap className="w-3 h-3 fill-orange-500 text-orange-500"/> {userProfile.streak} дней подряд
+             </span>
+           </div>
+
            <div className="h-8 flex items-center justify-center overflow-hidden mb-8">
              <p className={`text-xl ${style.subColor} font-medium transition-all duration-500 ease-in-out transform ${isCapabilityVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
                {capabilities[activeAgent][capabilityIndex]}
@@ -392,6 +437,20 @@ const App: React.FC = () => {
                      </button>
                    </>
                 )}
+
+                {/* UNIVERSAL SPECIFIC */}
+                {activeAgent === AgentMode.UNIVERSAL && (
+                   <>
+                     <button onClick={() => setCurrentView(AppView.PHOTO_ANALYZER)} className="py-4 bg-white/80 backdrop-blur-md rounded-2xl shadow-sm font-bold text-sm flex flex-col items-center justify-center gap-1 hover:bg-white transition-colors">
+                       <Camera className={`w-5 h-5 ${style.btnClass}`}/>
+                       Умный Сканер
+                     </button>
+                     <button onClick={() => setCurrentView(AppView.CHAT)} className="py-4 bg-white/80 backdrop-blur-md rounded-2xl shadow-sm font-bold text-sm flex flex-col items-center justify-center gap-1 hover:bg-white transition-colors">
+                       <BrainCircuit className={`w-5 h-5 ${style.btnClass}`}/>
+                       Брейншторм
+                     </button>
+                   </>
+                )}
              </div>
 
            </div>
@@ -420,6 +479,14 @@ const App: React.FC = () => {
              </div>
              
              <div className="grid grid-cols-3 gap-y-8 gap-x-4">
+               {/* Universal GPT */}
+               <div onClick={() => switchAgent(AgentMode.UNIVERSAL)} className="flex flex-col items-center gap-2 cursor-pointer group">
+                 <div className={`w-16 h-16 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110 shadow-lg ${activeAgent === AgentMode.UNIVERSAL ? 'bg-indigo-600 text-white shadow-indigo-500/40' : 'bg-white border border-gray-100 text-indigo-600'}`}>
+                   <Sparkles className="w-8 h-8"/>
+                 </div>
+                 <span className="text-xs font-bold text-gray-600">GPT</span>
+               </div>
+               
                {/* Chef */}
                <div onClick={() => switchAgent(AgentMode.CHEF)} className="flex flex-col items-center gap-2 cursor-pointer group">
                  <div className={`w-16 h-16 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110 shadow-lg ${activeAgent === AgentMode.CHEF ? 'bg-emerald-500 text-white shadow-emerald-500/40' : 'bg-white border border-gray-100 text-emerald-600'}`}>
@@ -464,7 +531,7 @@ const App: React.FC = () => {
           </div>
         </div>
       )}
-
+      
       {renderContent()}
     </div>
   );

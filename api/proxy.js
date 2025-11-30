@@ -1,4 +1,5 @@
 
+
 import { GoogleGenAI, Type } from "@google/genai";
 
 // Initialize Gemini on the server side
@@ -151,6 +152,23 @@ export default async function handler(req, res) {
             advice: { type: Type.STRING }
           },
           required: ["type", "styleName", "occasion", "colorPalette", "advice"]
+        };
+      } else if (agentMode === 'UNIVERSAL') {
+        prompt = `
+          Analyze this image in detail.
+          ${context}
+          1. Describe what is in the image comprehensively.
+          2. Generate 5 relevant tags or keywords.
+          Return in Russian.
+        `;
+        schema = {
+          type: Type.OBJECT,
+          properties: {
+            type: { type: Type.STRING, enum: ['GENERAL'] },
+            description: { type: Type.STRING },
+            tags: { type: Type.ARRAY, items: { type: Type.STRING } }
+          },
+          required: ["type", "description", "tags"]
         };
       } else {
         // DEFAULT: CHEF
@@ -444,6 +462,7 @@ export default async function handler(req, res) {
       else if (agentMode === 'FITNESS') systemInstruction = `Ты Фитнес-тренер. Мотивируй, будь энергичным, используй эмодзи. ${context}`;
       else if (agentMode === 'TRAVEL') systemInstruction = `Ты Тревел-гид. Рассказывай интересно о местах, истории и давай советы туристам. Используй 🌍✈️. ${context}`;
       else if (agentMode === 'STYLIST') systemInstruction = `Ты Фешн-стилист. Советуй тренды, сочетания цветов и образы. Будь модным и тактичным. 👗✨ ${context}`;
+      else if (agentMode === 'UNIVERSAL') systemInstruction = `Ты Универсальный AI помощник. Твоя цель - помогать пользователю с любыми вопросами, будь то генерация идей, написание текстов, анализ информации или просто беседа. Отвечай полезно, креативно и точно. ${context}`;
       else systemInstruction = `Ты Шеф-повар и Диетолог. Помогай с рецептами и меню. ${context}`;
 
       const chat = ai.chats.create({

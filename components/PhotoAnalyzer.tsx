@@ -1,9 +1,10 @@
 
+
 import React, { useState, useRef } from 'react';
-import { Camera, Upload, Loader2, CheckCircle, AlertCircle, Plus, Share2, Scale, Dumbbell, MapPin, Palette, AlertTriangle, ShieldCheck, Shirt, Globe } from 'lucide-react';
+import { Camera, Upload, Loader2, CheckCircle, AlertCircle, Plus, Share2, Scale, Dumbbell, MapPin, Palette, AlertTriangle, ShieldCheck, Shirt, Globe, Sparkles } from 'lucide-react';
 import { analyzeImage } from '../services/geminiService';
 import { saveHistoryItem } from '../services/historyService';
-import { AgentMode, UniversalAnalysisResult, FoodAnalysisResult, DocumentAnalysisResult, EquipmentAnalysisResult, LandmarkAnalysisResult, FashionAnalysisResult, UserProfile } from '../types';
+import { AgentMode, UniversalAnalysisResult, FoodAnalysisResult, DocumentAnalysisResult, EquipmentAnalysisResult, LandmarkAnalysisResult, FashionAnalysisResult, GeneralAnalysisResult, UserProfile } from '../types';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 
 interface ScannerProps {
@@ -102,6 +103,7 @@ const PhotoAnalyzer: React.FC<ScannerProps> = ({ agentMode, userProfile }) => {
       case AgentMode.FITNESS: return { color: 'red', icon: Dumbbell, title: 'Анализ Оборудования', desc: 'Сфоткай тренажер - узнай упражнения.' };
       case AgentMode.TRAVEL: return { color: 'violet', icon: Globe, title: 'Умный Гид', desc: 'Сфоткай достопримечательность - узнай историю.' };
       case AgentMode.STYLIST: return { color: 'pink', icon: Shirt, title: 'AI Стилист', desc: 'Загрузи лук - получи советы по стилю.' };
+      case AgentMode.UNIVERSAL: return { color: 'indigo', icon: Sparkles, title: 'Умный Сканер', desc: 'Загрузите любое фото для анализа.' };
       default: return { color: 'emerald', icon: Camera, title: 'Сканер Калорий', desc: 'Загрузите фото еды для подсчета КБЖУ.' };
     }
   };
@@ -214,6 +216,25 @@ const PhotoAnalyzer: React.FC<ScannerProps> = ({ agentMode, userProfile }) => {
                     <div className="font-bold text-gray-900">{ex.name}</div>
                     <div className="text-sm text-gray-500 mt-1">{ex.tips}</div>
                   </div>
+                ))}
+              </div>
+           </div>
+        </div>
+      );
+    }
+
+    // --- GENERAL RESULT ---
+    if (result.type === 'GENERAL') {
+      const gen = result as GeneralAnalysisResult;
+      return (
+        <div className="mt-8 space-y-6">
+           <div className="bg-white p-6 rounded-[2rem] border border-indigo-100 shadow-sm">
+              <h3 className="text-2xl font-heading font-bold text-gray-900 mb-2">Анализ изображения</h3>
+              <p className="text-gray-700 mb-6">{gen.description}</p>
+              
+              <div className="flex flex-wrap gap-2">
+                {gen.tags.map((tag, i) => (
+                  <span key={i} className="bg-indigo-50 text-indigo-600 px-3 py-1 rounded-lg text-sm font-bold">#{tag}</span>
                 ))}
               </div>
            </div>

@@ -37,6 +37,9 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ initialMessage, onClearIn
       case AgentMode.STYLIST:
         welcomeText = `Хей${name}! ✨ Я твой AI Стилист. \n\nДавай разберем гардероб:\n👗 Оценю лук по фото\n🎨 Подберу цвета\n🛍 Посоветую тренды`;
         break;
+      case AgentMode.UNIVERSAL:
+        welcomeText = `Привет${name}! 🤖 Я Универсальный GPT-ассистент.\n\nЯ могу помочь практически с чем угодно:\n🧠 Брейншторм идей\n📝 Написание текстов\n🔍 Поиск информации\n\nПросто спроси!`;
+        break;
       default:
         welcomeText = `Привет${name}! Я ваш Шеф-повар. 🍳\n\nМогу:\n🥦 Посчитать калории\n🥘 Придумать рецепт\n🥂 Составить меню для гостей`;
     }
@@ -90,6 +93,7 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ initialMessage, onClearIn
     if (agentMode === AgentMode.FITNESS) return 'red';
     if (agentMode === AgentMode.TRAVEL) return 'violet';
     if (agentMode === AgentMode.STYLIST) return 'pink';
+    if (agentMode === AgentMode.UNIVERSAL) return 'indigo';
     return 'emerald';
   };
   const theme = getThemeColor();
@@ -99,6 +103,7 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ initialMessage, onClearIn
     if (agentMode === AgentMode.FITNESS) return <Dumbbell className="w-5 h-5"/>;
     if (agentMode === AgentMode.TRAVEL) return <Globe className="w-5 h-5"/>;
     if (agentMode === AgentMode.STYLIST) return <Shirt className="w-5 h-5"/>;
+    if (agentMode === AgentMode.UNIVERSAL) return <Sparkles className="w-5 h-5"/>;
     return <ChefHat className="w-5 h-5"/>;
   }
 
@@ -111,7 +116,7 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ initialMessage, onClearIn
           </div>
           <div>
             <h3 className="font-heading font-bold text-gray-900 leading-none mb-1">
-              {agentMode === AgentMode.LAWYER ? 'AI Юрист' : agentMode === AgentMode.FITNESS ? 'AI Тренер' : agentMode === AgentMode.TRAVEL ? 'AI Гид' : agentMode === AgentMode.STYLIST ? 'AI Стилист' : 'AI Шеф'}
+              {agentMode === AgentMode.LAWYER ? 'AI Юрист' : agentMode === AgentMode.FITNESS ? 'AI Тренер' : agentMode === AgentMode.TRAVEL ? 'AI Гид' : agentMode === AgentMode.STYLIST ? 'AI Стилист' : agentMode === AgentMode.UNIVERSAL ? 'Universal GPT' : 'AI Шеф'}
             </h3>
             <p className="text-xs text-green-500 font-medium flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span> Онлайн
