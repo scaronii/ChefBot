@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Camera, ChefHat, Calendar, ArrowLeft, History, User, Search, Scale, Dumbbell, FileText, Activity, Globe, Shirt, X, Grid, MapPin, Zap, Layers, MessageCircle, Sparkles, BrainCircuit } from 'lucide-react';
+import { Camera, ChefHat, Calendar, ArrowLeft, History, User, Search, Scale, Dumbbell, FileText, Activity, Globe, Shirt, X, Grid, MapPin, Layers, MessageCircle, Sparkles, BrainCircuit, Palette, Image as ImageIcon } from 'lucide-react';
 import PhotoAnalyzer from './components/PhotoAnalyzer';
 import RecipeFinder from './components/RecipeFinder';
 import MealPlanner from './components/MealPlanner';
@@ -10,18 +10,19 @@ import DocumentDrafter from './components/DocumentDrafter';
 import WorkoutPlanner from './components/WorkoutPlanner';
 import TripPlanner from './components/TripPlanner';
 import CapsuleBuilder from './components/CapsuleBuilder';
+import ImageGenerator from './components/ImageGenerator';
 import { AppView, AgentMode, UserProfile } from './types';
 
 // Default Profile
 const DEFAULT_PROFILE: UserProfile = {
   name: 'Гость',
-  streak: 0,
   lastVisit: new Date(0).toISOString(),
   chef: { diet: 'Omnivore', allergies: '', dislikes: '', calorieGoal: 2000 },
   lawyer: { status: 'Individual', industry: '' },
   fitness: { level: 'Beginner', goal: 'Weight Loss', injuries: '' },
   travel: { budget: 'Moderate', interests: '' },
-  stylist: { gender: 'Unisex', style: 'Casual' }
+  stylist: { gender: 'Unisex', style: 'Casual' },
+  artist: { preferredStyle: 'Realistic', defaultRatio: '1:1' }
 };
 
 const App: React.FC = () => {
@@ -46,7 +47,8 @@ const App: React.FC = () => {
     [AgentMode.LAWYER]: ["Проверить договор ⚖️", "Составить претензию 📝", "Вопрос юристу 🎓"],
     [AgentMode.FITNESS]: ["Программа тренировок 💪", "Анализ техники 🏋️", "Совет по питанию 🥗"],
     [AgentMode.TRAVEL]: ["Маршрут поездки ✈️", "Гид по городу 🏛", "Советы туристам 🎒"],
-    [AgentMode.STYLIST]: ["Оценка лука 👗", "Капсула гардероба 🎨", "Советы по стилю ✨"]
+    [AgentMode.STYLIST]: ["Оценка лука 👗", "Капсула гардероба 🎨", "Советы по стилю ✨"],
+    [AgentMode.ARTIST]: ["Создать изображение 🎨", "Стилизовать фото 📸", "Дизайн идеи 🖌"]
   };
 
   // Load Profile & Init Telegram
@@ -72,25 +74,8 @@ const App: React.FC = () => {
       }
     }
 
-    // Streak Logic
-    const today = new Date().toDateString();
-    const lastVisitDate = new Date(loadedProfile.lastVisit).toDateString();
-    
-    if (today !== lastVisitDate) {
-      const yesterday = new Date();
-      yesterday.setDate(yesterday.getDate() - 1);
-      
-      if (yesterday.toDateString() === lastVisitDate) {
-        loadedProfile.streak += 1;
-      } else {
-        loadedProfile.streak = 1; // Reset or start streak
-        // Allow streak to be 1 if it's the first visit ever or lost streak
-      }
-      if (loadedProfile.lastVisit === new Date(0).toISOString()) loadedProfile.streak = 1; // First launch
-
-      loadedProfile.lastVisit = new Date().toISOString();
-      localStorage.setItem('nutrigen_user_profile', JSON.stringify(loadedProfile));
-    }
+    loadedProfile.lastVisit = new Date().toISOString();
+    localStorage.setItem('nutrigen_user_profile', JSON.stringify(loadedProfile));
 
     setUserProfile(loadedProfile);
   }, []);
@@ -154,6 +139,12 @@ const App: React.FC = () => {
         subColor: 'text-pink-600',
         btnClass: 'text-pink-700'
       };
+      case AgentMode.ARTIST: return { 
+        bgGradient: 'radial-gradient(at 0% 0%, #FAE8FF 0, transparent 50%), radial-gradient(at 100% 100%, #F0ABFC 0, transparent 50%)',
+        accentColor: 'text-fuchsia-900',
+        subColor: 'text-fuchsia-600',
+        btnClass: 'text-fuchsia-700'
+      };
       case AgentMode.UNIVERSAL: return { 
         bgGradient: 'radial-gradient(at 0% 0%, #E0E7FF 0, transparent 50%), radial-gradient(at 100% 100%, #C7D2FE 0, transparent 50%)',
         accentColor: 'text-indigo-900',
@@ -178,6 +169,7 @@ const App: React.FC = () => {
        case AgentMode.FITNESS: return 'AI Тренер';
        case AgentMode.TRAVEL: return 'AI Гид';
        case AgentMode.STYLIST: return 'AI Стилист';
+       case AgentMode.ARTIST: return 'AI Генерация';
        default: return 'AI Шеф';
      }
   }
@@ -202,6 +194,7 @@ const App: React.FC = () => {
     if (currentView === AppView.WORKOUT_PLANNER) return <div className={commonClasses}><Header title="Тренировка" /><WorkoutPlanner userProfile={userProfile} /></div>;
     if (currentView === AppView.TRIP_PLANNER) return <div className={commonClasses}><Header title="Маршрут" /><TripPlanner userProfile={userProfile} /></div>;
     if (currentView === AppView.CAPSULE_WARDROBE) return <div className={commonClasses}><Header title="Капсула" /><CapsuleBuilder userProfile={userProfile} /></div>;
+    if (currentView === AppView.IMAGE_GENERATOR) return <div className={commonClasses}><Header title="Генератор" /><ImageGenerator userProfile={userProfile} /></div>;
     
     if (currentView === AppView.CHAT) {
       return (
@@ -224,81 +217,34 @@ const App: React.FC = () => {
   };
 
   const getMainActionButton = () => {
+    const commonClass = "w-full py-4 bg-white rounded-2xl shadow-lg shadow-gray-200/50 text-gray-800 font-bold text-lg flex items-center justify-center gap-3 hover:scale-105 active:scale-95 transition-all";
+    
     // LAWYER: Chat is main
     if (activeAgent === AgentMode.LAWYER) {
-      return (
-        <button 
-           onClick={() => setCurrentView(AppView.CHAT)} 
-           className="w-full py-4 bg-white rounded-2xl shadow-lg shadow-gray-200/50 text-gray-800 font-bold text-lg flex items-center justify-center gap-3 hover:scale-105 active:scale-95 transition-all"
-         >
-            <Search className={`w-6 h-6 ${style.btnClass}`}/>
-            Чат с Юристом
-         </button>
-      )
+      return <button onClick={() => setCurrentView(AppView.CHAT)} className={commonClass}><Search className={`w-6 h-6 ${style.btnClass}`}/> Чат с Юристом</button>;
     }
-
     // FITNESS: Chat is main
     if (activeAgent === AgentMode.FITNESS) {
-      return (
-        <button 
-           onClick={() => setCurrentView(AppView.CHAT)} 
-           className="w-full py-4 bg-white rounded-2xl shadow-lg shadow-gray-200/50 text-gray-800 font-bold text-lg flex items-center justify-center gap-3 hover:scale-105 active:scale-95 transition-all"
-         >
-            <Activity className={`w-6 h-6 ${style.btnClass}`}/>
-            Чат с Тренером
-         </button>
-      )
+      return <button onClick={() => setCurrentView(AppView.CHAT)} className={commonClass}><Activity className={`w-6 h-6 ${style.btnClass}`}/> Чат с Тренером</button>;
     }
-
     // TRAVEL: Chat is main
     if (activeAgent === AgentMode.TRAVEL) {
-      return (
-        <button 
-           onClick={() => setCurrentView(AppView.CHAT)} 
-           className="w-full py-4 bg-white rounded-2xl shadow-lg shadow-gray-200/50 text-gray-800 font-bold text-lg flex items-center justify-center gap-3 hover:scale-105 active:scale-95 transition-all"
-         >
-            <Globe className={`w-6 h-6 ${style.btnClass}`}/>
-            Чат с Гидом
-         </button>
-      )
+      return <button onClick={() => setCurrentView(AppView.CHAT)} className={commonClass}><Globe className={`w-6 h-6 ${style.btnClass}`}/> Чат с Гидом</button>;
     }
-
     // STYLIST: Chat is main
     if (activeAgent === AgentMode.STYLIST) {
-      return (
-        <button 
-           onClick={() => setCurrentView(AppView.CHAT)} 
-           className="w-full py-4 bg-white rounded-2xl shadow-lg shadow-gray-200/50 text-gray-800 font-bold text-lg flex items-center justify-center gap-3 hover:scale-105 active:scale-95 transition-all"
-         >
-            <Shirt className={`w-6 h-6 ${style.btnClass}`}/>
-            Чат со Стилистом
-         </button>
-      )
+      return <button onClick={() => setCurrentView(AppView.CHAT)} className={commonClass}><Shirt className={`w-6 h-6 ${style.btnClass}`}/> Чат со Стилистом</button>;
     }
-
+     // ARTIST: Chat is main (UPDATED)
+    if (activeAgent === AgentMode.ARTIST) {
+      return <button onClick={() => setCurrentView(AppView.CHAT)} className={commonClass}><MessageCircle className={`w-6 h-6 ${style.btnClass}`}/> Чат с AI</button>;
+    }
     // UNIVERSAL: Chat is main
     if (activeAgent === AgentMode.UNIVERSAL) {
-      return (
-        <button 
-           onClick={() => setCurrentView(AppView.CHAT)} 
-           className="w-full py-4 bg-white rounded-2xl shadow-lg shadow-gray-200/50 text-gray-800 font-bold text-lg flex items-center justify-center gap-3 hover:scale-105 active:scale-95 transition-all"
-         >
-            <MessageCircle className={`w-6 h-6 ${style.btnClass}`}/>
-            Чат с GPT
-         </button>
-      )
+      return <button onClick={() => setCurrentView(AppView.CHAT)} className={commonClass}><MessageCircle className={`w-6 h-6 ${style.btnClass}`}/> Чат с GPT</button>;
     }
-    
     // CHEF: Chat is main
-    return (
-       <button 
-         onClick={() => setCurrentView(AppView.CHAT)} 
-         className="w-full py-4 bg-white rounded-2xl shadow-lg shadow-gray-200/50 text-gray-800 font-bold text-lg flex items-center justify-center gap-3 hover:scale-105 active:scale-95 transition-all"
-       >
-          <Search className={`w-6 h-6 ${style.btnClass}`}/>
-          Чат с Шефом
-       </button>
-    )
+    return <button onClick={() => setCurrentView(AppView.CHAT)} className={commonClass}><Search className={`w-6 h-6 ${style.btnClass}`}/> Чат с Шефом</button>;
   }
 
   return (
@@ -339,19 +285,13 @@ const App: React.FC = () => {
               activeAgent === AgentMode.LAWYER ? 'Юридический Помощник' : 
               activeAgent === AgentMode.FITNESS ? 'Фитнес Тренер' : 
               activeAgent === AgentMode.TRAVEL ? 'Тревел Гид' :
-              activeAgent === AgentMode.STYLIST ? 'Фешн Стилист' : 'Персональный Шеф'}
+              activeAgent === AgentMode.STYLIST ? 'Фешн Стилист' : 
+              activeAgent === AgentMode.ARTIST ? 'Генерация Изображений' : 'Персональный Шеф'}
            </div>
 
-           <h1 className={`text-6xl font-heading font-extrabold ${style.accentColor} tracking-tight leading-[1.1] mb-4 animate-pop-in`}>
+           <h1 className={`text-6xl font-heading font-extrabold ${style.accentColor} tracking-tight leading-[1.1] mb-8 animate-pop-in`}>
              Привет,<br />{username}
            </h1>
-           
-           {/* Streak Badge */}
-           <div className="mb-6 animate-pop-in" style={{ animationDelay: '0.1s' }}>
-             <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-orange-100/50 rounded-full text-orange-700 text-xs font-bold border border-orange-200/50">
-               <Zap className="w-3 h-3 fill-orange-500 text-orange-500"/> {userProfile.streak} дней подряд
-             </span>
-           </div>
 
            <div className="h-8 flex items-center justify-center overflow-hidden mb-8">
              <p className={`text-xl ${style.subColor} font-medium transition-all duration-500 ease-in-out transform ${isCapabilityVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
@@ -438,6 +378,20 @@ const App: React.FC = () => {
                    </>
                 )}
 
+                 {/* ARTIST SPECIFIC (UPDATED) */}
+                {activeAgent === AgentMode.ARTIST && (
+                   <>
+                     <button onClick={() => setCurrentView(AppView.IMAGE_GENERATOR)} className="py-4 bg-white/80 backdrop-blur-md rounded-2xl shadow-sm font-bold text-sm flex flex-col items-center justify-center gap-1 hover:bg-white transition-colors">
+                       <Palette className={`w-5 h-5 ${style.btnClass}`}/>
+                       Создать
+                     </button>
+                     <button onClick={() => setCurrentView(AppView.IMAGE_GENERATOR)} className="py-4 bg-white/80 backdrop-blur-md rounded-2xl shadow-sm font-bold text-sm flex flex-col items-center justify-center gap-1 hover:bg-white transition-colors">
+                       <ImageIcon className={`w-5 h-5 ${style.btnClass}`}/>
+                       Галерея
+                     </button>
+                   </>
+                )}
+
                 {/* UNIVERSAL SPECIFIC */}
                 {activeAgent === AgentMode.UNIVERSAL && (
                    <>
@@ -485,6 +439,14 @@ const App: React.FC = () => {
                    <Sparkles className="w-8 h-8"/>
                  </div>
                  <span className="text-xs font-bold text-gray-600">GPT</span>
+               </div>
+
+                {/* Artist (Renamed & Moved to 2nd pos) */}
+               <div onClick={() => switchAgent(AgentMode.ARTIST)} className="flex flex-col items-center gap-2 cursor-pointer group">
+                 <div className={`w-16 h-16 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110 shadow-lg ${activeAgent === AgentMode.ARTIST ? 'bg-fuchsia-500 text-white shadow-fuchsia-500/40' : 'bg-white border border-gray-100 text-fuchsia-600'}`}>
+                   <Palette className="w-8 h-8"/>
+                 </div>
+                 <span className="text-xs font-bold text-gray-600">Генерация</span>
                </div>
                
                {/* Chef */}

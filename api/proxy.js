@@ -6,6 +6,7 @@ import { GoogleGenAI, Type } from "@google/genai";
 const apiKey = process.env.VITE_API_KEY;
 const ai = new GoogleGenAI({ apiKey: apiKey || '' });
 const MODEL_FAST = 'gemini-2.5-flash';
+const MODEL_IMAGE = 'gemini-2.5-flash-image';
 
 // Helper to format profile into a string for the prompt
 const formatProfile = (profile, agentMode) => {
@@ -21,6 +22,8 @@ const formatProfile = (profile, agentMode) => {
     info += `, Budget=${profile.travel.budget}, Interests=${profile.travel.interests}`;
   } else if (agentMode === 'STYLIST') {
     info += `, Gender=${profile.stylist.gender}, Style=${profile.stylist.style}`;
+  } else if (agentMode === 'ARTIST') {
+    info += `, PreferredStyle=${profile.artist.preferredStyle}`;
   }
   info += "]";
   return info;
@@ -447,9 +450,49 @@ export default async function handler(req, res) {
       return res.status(200).json(JSON.parse(response.text));
     }
 
-    // 8. CHAT
+    // 8. GENERATE IMAGE (ARTIST)
+    if (action === 'generate_image') {
+       const { prompt, aspectRatio, style } = payload;
+       // Context helps refine the prompt but isn't sent directly to image model as part of a system instruction object
+       // Instead we append it to the prompt.
+       const context = formatProfile(userProfile, 'ARTIST');
+       
+       const fullPrompt = `Create a high quality image. Description: ${prompt}. Style: ${style}. ${context}`;
+       
+       const response = await ai.models.generateContent({
+          model: MODEL_IMAGE,
+          contents: { parts: [{ text: fullPrompt }] },
+          config: {
+             imageConfig: {
+                aspectRatio: aspectRatio, // "1:1", "3:4", "4:3", "9:16", "16:9"
+                imageSize: "1K"
+             }
+          }
+       });
+
+       // Extract base64
+       let imageBase64 = null;
+       const parts = response.candidates?.[0]?.content?.parts;
+       if (parts) {
+         for (const part of parts) {
+            if (part.inlineData) {
+               imageBase64 = part.inlineData.data;
+               break;
+            }
+         }
+       }
+       
+       if (!imageBase64) {
+          throw new Error("No image generated.");
+       }
+
+       return res.status(200).json({ imageBase64 });
+    }
+
+
+    // 9. CHAT
     if (action === 'chat') {
-      const { message, history, agentMode } = payload;
+      const { message, history, agentMode, attachment } = payload;
       const context = formatProfile(userProfile, agentMode);
       
       const formattedHistory = history.map(msg => ({
@@ -462,6 +505,7 @@ export default async function handler(req, res) {
       else if (agentMode === 'FITNESS') systemInstruction = `Ты Фитнес-тренер. Мотивируй, будь энергичным, используй эмодзи. ${context}`;
       else if (agentMode === 'TRAVEL') systemInstruction = `Ты Тревел-гид. Рассказывай интересно о местах, истории и давай советы туристам. Используй 🌍✈️. ${context}`;
       else if (agentMode === 'STYLIST') systemInstruction = `Ты Фешн-стилист. Советуй тренды, сочетания цветов и образы. Будь модным и тактичным. 👗✨ ${context}`;
+      else if (agentMode === 'ARTIST') systemInstruction = `Ты AI Художник и Креатор. Твоя цель - помогать пользователю создавать идеи для изображений, обсуждать искусство и стиль. Предлагай креативные промпты. 🎨🖌️ ${context}`;
       else if (agentMode === 'UNIVERSAL') systemInstruction = `Ты Универсальный AI помощник. Твоя цель - помогать пользователю с любыми вопросами, будь то генерация идей, написание текстов, анализ информации или просто беседа. Отвечай полезно, креативно и точно. ${context}`;
       else systemInstruction = `Ты Шеф-повар и Диетолог. Помогай с рецептами и меню. ${context}`;
 
@@ -471,7 +515,20 @@ export default async function handler(req, res) {
         config: { systemInstruction }
       });
 
-      const result = await chat.sendMessage({ message: message });
+      // Handle message part with attachment (PDF or Image)
+      let messageContent;
+      if (attachment && attachment.data) {
+        messageContent = {
+           parts: [
+              { inlineData: { mimeType: attachment.mimeType, data: attachment.data } },
+              { text: message || (attachment.type === 'image' ? "Analyze this image." : "Analyze this document.") }
+           ]
+        };
+      } else {
+        messageContent = { message: message };
+      }
+
+      const result = await chat.sendMessage(messageContent);
       return res.status(200).json({ text: result.text });
     }
 

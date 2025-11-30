@@ -1,7 +1,8 @@
 
+
 import React, { useState } from 'react';
 import { UserProfile, AgentMode } from '../types';
-import { ChefHat, Scale, Activity, Globe, Shirt, Save, Check } from 'lucide-react';
+import { ChefHat, Scale, Activity, Globe, Shirt, Save, Check, Palette } from 'lucide-react';
 
 interface ProfileSettingsProps {
   profile: UserProfile;
@@ -37,6 +38,9 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ profile, onSave }) =>
   const updateStylist = (field: keyof typeof localProfile.stylist, value: any) => {
     setLocalProfile({ ...localProfile, stylist: { ...localProfile.stylist, [field]: value } });
   };
+  const updateArtist = (field: keyof typeof localProfile.artist, value: any) => {
+    setLocalProfile({ ...localProfile, artist: { ...localProfile.artist, [field]: value } });
+  };
 
   const tabs = [
     { id: AgentMode.CHEF, icon: ChefHat, label: 'Шеф' },
@@ -44,6 +48,7 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ profile, onSave }) =>
     { id: AgentMode.FITNESS, icon: Activity, label: 'Спорт' },
     { id: AgentMode.TRAVEL, icon: Globe, label: 'Гид' },
     { id: AgentMode.STYLIST, icon: Shirt, label: 'Стиль' },
+    { id: AgentMode.ARTIST, icon: Palette, label: 'Арт' },
   ];
 
   return (
@@ -244,6 +249,26 @@ const ProfileSettings: React.FC<ProfileSettingsProps> = ({ profile, onSave }) =>
                 <option value="Formal">Деловой</option>
                 <option value="Streetwear">Стритвир</option>
                 <option value="Boho">Бохо</option>
+              </select>
+            </div>
+          </div>
+        )}
+
+        {activeTab === AgentMode.ARTIST && (
+           <div className="space-y-4">
+            <h3 className="text-xl font-heading font-bold text-gray-900 mb-4">Настройки Художника</h3>
+             <div>
+              <label className="label-text">Любимый Стиль</label>
+              <select 
+                value={localProfile.artist?.preferredStyle || 'Realistic'}
+                onChange={(e) => updateArtist('preferredStyle', e.target.value)}
+                className="input-field"
+              >
+                <option value="Realistic">Фотореализм</option>
+                <option value="Anime">Аниме</option>
+                <option value="Cyberpunk">Киберпанк</option>
+                <option value="Oil Painting">Масло</option>
+                <option value="3D Render">3D Рендер</option>
               </select>
             </div>
           </div>

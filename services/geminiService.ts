@@ -1,5 +1,6 @@
 
-import { UniversalAnalysisResult, Recipe, WeeklyPlan, ChatMessage, AgentMode, UserProfile, WorkoutPlan, TripPlan, CapsuleWardrobe } from "../types";
+
+import { UniversalAnalysisResult, Recipe, WeeklyPlan, ChatMessage, AgentMode, UserProfile, WorkoutPlan, TripPlan, CapsuleWardrobe, Attachment } from "../types";
 
 // Helper to call our Vercel Serverless Function
 const callApi = async (action: string, payload: any) => {
@@ -64,13 +65,19 @@ export const generateCapsuleWardrobe = async (season: string, occasion: string, 
   return callApi('capsule_wardrobe', { season, occasion, style, userProfile });
 };
 
-// 8. Chat - Supports Multi-Agent
-export const sendMessageToChat = async (message: string, history: ChatMessage[], agentMode: AgentMode, userProfile?: UserProfile) => {
+// 8. Generate Image (Artist)
+export const generateImage = async (prompt: string, aspectRatio: string, style: string, userProfile?: UserProfile): Promise<{ imageBase64: string }> => {
+    return callApi('generate_image', { prompt, aspectRatio, style, userProfile });
+}
+
+// 9. Chat - Supports Multi-Agent & Attachments
+export const sendMessageToChat = async (message: string, history: ChatMessage[], agentMode: AgentMode, userProfile?: UserProfile, attachment?: Attachment) => {
   // Convert our frontend history types to simple objects for the API
   const historyPayload = history.map(h => ({
     role: h.role,
     text: h.text
+    // Not sending history attachments to save bandwidth
   }));
 
-  return callApi('chat', { message, history: historyPayload, agentMode, userProfile });
+  return callApi('chat', { message, history: historyPayload, agentMode, userProfile, attachment });
 };

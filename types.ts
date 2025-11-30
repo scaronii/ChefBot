@@ -13,7 +13,8 @@ export enum AppView {
   DOCUMENT_ANALYZER = 'DOCUMENT_ANALYZER',
   DOCUMENT_DRAFTER = 'DOCUMENT_DRAFTER',
   TRIP_PLANNER = 'TRIP_PLANNER',
-  CAPSULE_WARDROBE = 'CAPSULE_WARDROBE'
+  CAPSULE_WARDROBE = 'CAPSULE_WARDROBE',
+  IMAGE_GENERATOR = 'IMAGE_GENERATOR'
 }
 
 export enum AgentMode {
@@ -22,6 +23,7 @@ export enum AgentMode {
   FITNESS = 'FITNESS',
   TRAVEL = 'TRAVEL',
   STYLIST = 'STYLIST',
+  ARTIST = 'ARTIST',
   UNIVERSAL = 'UNIVERSAL'
 }
 
@@ -176,9 +178,17 @@ export interface CapsuleWardrobe {
   stylingTips: string[];
 }
 
+export interface Attachment {
+  type: 'image' | 'file';
+  mimeType: string;
+  data: string; // Base64
+  fileName: string;
+}
+
 export interface ChatMessage {
   role: 'user' | 'model';
   text: string;
+  attachment?: Attachment;
   timestamp: Date;
 }
 
@@ -212,17 +222,23 @@ export interface StylistProfile {
   gender: 'Male' | 'Female' | 'Unisex';
 }
 
+export interface ArtistProfile {
+    preferredStyle: 'Realistic' | 'Anime' | 'Cyberpunk' | 'Oil Painting' | '3D Render';
+    defaultRatio: '1:1' | '16:9' | '9:16';
+}
+
 export interface UserProfile {
   name: string;
-  streak: number;
   lastVisit: string; // ISO Date string
   chef: ChefProfile;
   lawyer: LawyerProfile;
   fitness: FitnessProfile;
   travel: TravelProfile;
   stylist: StylistProfile;
+  artist: ArtistProfile;
 }
 
+// --- Speech Recognition Types ---
 declare global {
   interface Window {
     Telegram: {
@@ -254,5 +270,7 @@ declare global {
         };
       };
     };
+    SpeechRecognition: any;
+    webkitSpeechRecognition: any;
   }
 }
