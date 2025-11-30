@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Send, User, Bot, Loader2, Sparkles, Scale, Dumbbell, ChefHat } from 'lucide-react';
-import { ChatMessage, AgentMode } from '../types';
+import { Send, User, Bot, Loader2, Sparkles, Scale, Dumbbell, ChefHat, Globe, Shirt } from 'lucide-react';
+import { ChatMessage, AgentMode, UserProfile } from '../types';
 import { sendMessageToChat } from '../services/geminiService';
 import ReactMarkdown from 'react-markdown';
 
@@ -9,9 +9,10 @@ interface ChatAssistantProps {
   initialMessage?: string;
   onClearInitial?: () => void;
   agentMode: AgentMode;
+  userProfile?: UserProfile;
 }
 
-const ChatAssistant: React.FC<ChatAssistantProps> = ({ initialMessage, onClearInitial, agentMode }) => {
+const ChatAssistant: React.FC<ChatAssistantProps> = ({ initialMessage, onClearInitial, agentMode, userProfile }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
@@ -21,18 +22,26 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ initialMessage, onClearIn
   // Initialize Welcome Message based on Agent
   useEffect(() => {
     let welcomeText = '';
+    const name = userProfile?.name ? `, ${userProfile.name}` : '';
+
     switch (agentMode) {
       case AgentMode.LAWYER:
-        welcomeText = 'Здравствуйте. Я ваш ИИ-Юрист. \n\nЯ могу:\n⚖️ Проверить договор по фото\n📄 Составить претензию\n❓ Ответить на вопросы по законам РФ.\n\nЧем могу быть полезен?';
+        welcomeText = `Здравствуйте${name}. Я ваш ИИ-Юрист. \n\nЯ могу:\n⚖️ Проверить договор по фото\n📄 Составить претензию\n❓ Ответить на вопросы по законам РФ.`;
         break;
       case AgentMode.FITNESS:
-        welcomeText = 'Привет, атлет! 💪 Я твой Фитнес-Тренер. \n\nДавай сделаем форму мечты:\n🏋️ Программа тренировок\n🥗 Спортивное питание\n🏃 Техника упражнений\n\nГотов работать?';
+        welcomeText = `Привет${name}! 💪 Я твой Фитнес-Тренер. \n\nДавай сделаем форму мечты:\n🏋️ Программа тренировок\n🥗 Спортивное питание\n🏃 Техника упражнений`;
+        break;
+      case AgentMode.TRAVEL:
+        welcomeText = `Привет${name}! 🌍 Я твой Тревел-Гид. \n\nКуда отправимся?\n🏛 Расскажу историю места\n📍 Подскажу скрытые локации\n✈️ Спланирую маршрут`;
+        break;
+      case AgentMode.STYLIST:
+        welcomeText = `Хей${name}! ✨ Я твой AI Стилист. \n\nДавай разберем гардероб:\n👗 Оценю лук по фото\n🎨 Подберу цвета\n🛍 Посоветую тренды`;
         break;
       default:
-        welcomeText = 'Привет! Я ваш Шеф-повар. 🍳\n\nМогу:\n🥦 Посчитать калории\n🥘 Придумать рецепт\n🥂 Составить меню для гостей\n\nЧто готовим?';
+        welcomeText = `Привет${name}! Я ваш Шеф-повар. 🍳\n\nМогу:\n🥦 Посчитать калории\n🥘 Придумать рецепт\n🥂 Составить меню для гостей`;
     }
     setMessages([{ role: 'model', text: welcomeText, timestamp: new Date() }]);
-  }, [agentMode]);
+  }, [agentMode, userProfile]);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -60,7 +69,7 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ initialMessage, onClearIn
     setLoading(true);
 
     try {
-      const result = await sendMessageToChat(userMsg.text, currentHistory, agentMode);
+      const result = await sendMessageToChat(userMsg.text, currentHistory, agentMode, userProfile);
       if (window.Telegram?.WebApp?.HapticFeedback) window.Telegram.WebApp.HapticFeedback.notificationOccurred('success');
       
       const botMsg: ChatMessage = { 
@@ -79,20 +88,30 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ initialMessage, onClearIn
   const getThemeColor = () => {
     if (agentMode === AgentMode.LAWYER) return 'blue';
     if (agentMode === AgentMode.FITNESS) return 'red';
+    if (agentMode === AgentMode.TRAVEL) return 'violet';
+    if (agentMode === AgentMode.STYLIST) return 'pink';
     return 'emerald';
   };
   const theme = getThemeColor();
+
+  const getIcon = () => {
+    if (agentMode === AgentMode.LAWYER) return <Scale className="w-5 h-5"/>;
+    if (agentMode === AgentMode.FITNESS) return <Dumbbell className="w-5 h-5"/>;
+    if (agentMode === AgentMode.TRAVEL) return <Globe className="w-5 h-5"/>;
+    if (agentMode === AgentMode.STYLIST) return <Shirt className="w-5 h-5"/>;
+    return <ChefHat className="w-5 h-5"/>;
+  }
 
   return (
     <div className={`max-w-4xl mx-auto h-[calc(100vh-140px)] md:h-[700px] flex flex-col bg-white rounded-[2rem] shadow-xl shadow-${theme}-900/5 border border-gray-100 overflow-hidden animate-fade-in`}>
       <div className="bg-white/80 backdrop-blur-md p-4 md:p-6 border-b border-gray-100 flex items-center justify-between sticky top-0 z-10">
         <div className="flex items-center gap-3">
           <div className={`w-10 h-10 bg-gradient-to-tr from-${theme}-500 to-${theme}-400 rounded-full flex items-center justify-center text-white shadow-lg`}>
-             {agentMode === AgentMode.LAWYER ? <Scale className="w-5 h-5"/> : agentMode === AgentMode.FITNESS ? <Dumbbell className="w-5 h-5"/> : <ChefHat className="w-5 h-5"/>}
+             {getIcon()}
           </div>
           <div>
             <h3 className="font-heading font-bold text-gray-900 leading-none mb-1">
-              {agentMode === AgentMode.LAWYER ? 'AI Юрист' : agentMode === AgentMode.FITNESS ? 'AI Тренер' : 'AI Шеф'}
+              {agentMode === AgentMode.LAWYER ? 'AI Юрист' : agentMode === AgentMode.FITNESS ? 'AI Тренер' : agentMode === AgentMode.TRAVEL ? 'AI Гид' : agentMode === AgentMode.STYLIST ? 'AI Стилист' : 'AI Шеф'}
             </h3>
             <p className="text-xs text-green-500 font-medium flex items-center gap-1">
               <span className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse"></span> Онлайн

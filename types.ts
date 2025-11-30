@@ -6,15 +6,21 @@ export enum AppView {
   MEAL_PLANNER = 'MEAL_PLANNER',
   CHAT = 'CHAT',
   HISTORY = 'HISTORY',
+  PROFILE = 'PROFILE', // New View
   // New Views
   WORKOUT_PLANNER = 'WORKOUT_PLANNER',
-  DOCUMENT_ANALYZER = 'DOCUMENT_ANALYZER'
+  DOCUMENT_ANALYZER = 'DOCUMENT_ANALYZER',
+  DOCUMENT_DRAFTER = 'DOCUMENT_DRAFTER',
+  TRIP_PLANNER = 'TRIP_PLANNER',
+  CAPSULE_WARDROBE = 'CAPSULE_WARDROBE'
 }
 
 export enum AgentMode {
   CHEF = 'CHEF',
   LAWYER = 'LAWYER',
-  FITNESS = 'FITNESS'
+  FITNESS = 'FITNESS',
+  TRAVEL = 'TRAVEL',
+  STYLIST = 'STYLIST'
 }
 
 export interface MacroData {
@@ -45,6 +51,8 @@ export interface DocumentAnalysisResult {
   keyPoints: string[];
   risks: string[];
   recommendation: string;
+  missingClauses?: string[];
+  actionableSteps?: string[];
 }
 
 // Fitness Result
@@ -59,7 +67,25 @@ export interface EquipmentAnalysisResult {
   }[];
 }
 
-export type UniversalAnalysisResult = FoodAnalysisResult | DocumentAnalysisResult | EquipmentAnalysisResult;
+// Travel Result
+export interface LandmarkAnalysisResult {
+  type: 'LANDMARK';
+  landmarkName: string;
+  location: string;
+  history: string;
+  tips: string[];
+}
+
+// Stylist Result
+export interface FashionAnalysisResult {
+  type: 'FASHION';
+  styleName: string;
+  occasion: string;
+  colorPalette: string[];
+  advice: string;
+}
+
+export type UniversalAnalysisResult = FoodAnalysisResult | DocumentAnalysisResult | EquipmentAnalysisResult | LandmarkAnalysisResult | FashionAnalysisResult;
 
 export interface HistoryItem extends FoodAnalysisResult {
   id: string;
@@ -91,10 +117,101 @@ export interface WeeklyPlan {
   shoppingList: string[];
 }
 
+// Workout Plan Types
+export interface WorkoutExercise {
+  name: string;
+  sets: number;
+  reps: string;
+  rest: string;
+  notes: string;
+}
+
+export interface WorkoutPlan {
+  title: string;
+  duration: string;
+  difficulty: string;
+  exercises: WorkoutExercise[];
+}
+
+// Trip Plan Types
+export interface TripActivity {
+  time: string; // Morning, Afternoon, Evening
+  activity: string;
+  description: string;
+}
+
+export interface TripDay {
+  day: number;
+  theme: string;
+  activities: TripActivity[];
+}
+
+export interface TripPlan {
+  destination: string;
+  totalCostEstimate: string;
+  itinerary: TripDay[];
+}
+
+// Capsule Wardrobe Types
+export interface CapsuleItem {
+  category: string; // Tops, Bottoms, Shoes, etc.
+  name: string;
+  color: string;
+  description: string;
+}
+
+export interface CapsuleWardrobe {
+  title: string;
+  colorPalette: string[];
+  items: CapsuleItem[];
+  stylingTips: string[];
+}
+
 export interface ChatMessage {
   role: 'user' | 'model';
   text: string;
   timestamp: Date;
+}
+
+// --- USER PROFILES ---
+
+export interface ChefProfile {
+  diet: 'Omnivore' | 'Vegetarian' | 'Vegan' | 'Keto' | 'Paleo';
+  allergies: string;
+  dislikes: string;
+  calorieGoal: number;
+}
+
+export interface LawyerProfile {
+  status: 'Individual' | 'Entrepreneur' | 'Company';
+  industry: string;
+}
+
+export interface FitnessProfile {
+  level: 'Beginner' | 'Intermediate' | 'Advanced';
+  goal: 'Weight Loss' | 'Muscle Gain' | 'Endurance';
+  injuries: string;
+}
+
+export interface TravelProfile {
+  interests: string; // e.g. History, Food, Adventure
+  budget: 'Budget' | 'Moderate' | 'Luxury';
+}
+
+export interface StylistProfile {
+  style: 'Casual' | 'Formal' | 'Streetwear' | 'Boho';
+  gender: 'Male' | 'Female' | 'Unisex';
+}
+
+export interface UserProfile {
+  name: string;
+  streak: number;
+  lastVisit: string; // ISO Date string
+  chef: ChefProfile;
+  lawyer: LawyerProfile;
+  fitness: FitnessProfile;
+  travel: TravelProfile;
+  stylist: StylistProfile;
 }
 
 declare global {

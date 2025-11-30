@@ -1,19 +1,39 @@
 
 import React, { useState, useEffect } from 'react';
-import { Camera, ChefHat, Calendar, ArrowLeft, History, User, Search, Scale, Dumbbell, FileText, Activity } from 'lucide-react';
+import { Camera, ChefHat, Calendar, ArrowLeft, History, User, Search, Scale, Dumbbell, FileText, Activity, Globe, Shirt, X, Grid, MapPin, Zap, Layers } from 'lucide-react';
 import PhotoAnalyzer from './components/PhotoAnalyzer';
 import RecipeFinder from './components/RecipeFinder';
 import MealPlanner from './components/MealPlanner';
 import ChatAssistant from './components/ChatAssistant';
 import ProgressChart from './components/ProgressChart';
-import { AppView, AgentMode } from './types';
+import ProfileSettings from './components/ProfileSettings';
+import DocumentDrafter from './components/DocumentDrafter';
+import WorkoutPlanner from './components/WorkoutPlanner';
+import TripPlanner from './components/TripPlanner';
+import CapsuleBuilder from './components/CapsuleBuilder';
+import { AppView, AgentMode, UserProfile } from './types';
+
+// Default Profile
+const DEFAULT_PROFILE: UserProfile = {
+  name: 'Гость',
+  streak: 0,
+  lastVisit: new Date(0).toISOString(),
+  chef: { diet: 'Omnivore', allergies: '', dislikes: '', calorieGoal: 2000 },
+  lawyer: { status: 'Individual', industry: '' },
+  fitness: { level: 'Beginner', goal: 'Weight Loss', injuries: '' },
+  travel: { budget: 'Moderate', interests: '' },
+  stylist: { gender: 'Unisex', style: 'Casual' }
+};
 
 const App: React.FC = () => {
   const [currentView, setCurrentView] = useState<AppView | 'HOME'>('HOME');
   const [activeAgent, setActiveAgent] = useState<AgentMode>(AgentMode.CHEF);
-  const [username, setUsername] = useState<string>('Гость');
+  const [showAppGrid, setShowAppGrid] = useState(false);
   const [initialChatMessage, setInitialChatMessage] = useState<string>('');
   
+  // Profile State
+  const [userProfile, setUserProfile] = useState<UserProfile>(DEFAULT_PROFILE);
+
   // Rotating Text State
   const [capabilityIndex, setCapabilityIndex] = useState(0);
   const [isCapabilityVisible, setIsCapabilityVisible] = useState(true);
@@ -21,18 +41,57 @@ const App: React.FC = () => {
   // Define Capabilities per Agent
   const capabilities = {
     [AgentMode.CHEF]: ["Посчитать калории 📸", "Составить меню 📅", "Рецепт ужина 🍳"],
-    [AgentMode.LAWYER]: ["Проверить договор ⚖️", "Составить претензию 📝", "Вопрос юристу 🎓"],
-    [AgentMode.FITNESS]: ["Программа тренировок 💪", "Анализ техники 🏋️", "Совет по питанию 🥗"]
+    [AgentMode.LAWYER]: ["Чат с юристом ⚖️", "Проверка документов 📄", "Составить претензию 📝"],
+    [AgentMode.FITNESS]: ["Программа тренировок 💪", "Анализ техники 🏋️", "Совет по питанию 🥗"],
+    [AgentMode.TRAVEL]: ["Спланировать маршрут ✈️", "Узнать историю места 🏛", "Советы туристам 🎒"],
+    [AgentMode.STYLIST]: ["Собрать капсулу 🧥", "Подобрать цвета 🎨", "Оценить лук ✨"]
   };
 
+  // Load Profile & Init Telegram
   useEffect(() => {
+    // Load from LocalStorage
+    const stored = localStorage.getItem('nutrigen_user_profile');
+    let loadedProfile = DEFAULT_PROFILE;
+    
+    if (stored) {
+      try {
+        loadedProfile = JSON.parse(stored);
+      } catch (e) { console.error("Profile parse error", e); }
+    }
+
+    // Telegram Init
     if (window.Telegram?.WebApp) {
       window.Telegram.WebApp.ready();
       window.Telegram.WebApp.expand();
-      const user = window.Telegram.WebApp.initDataUnsafe?.user;
-      if (user?.first_name) setUsername(user.first_name);
+      const tgUser = window.Telegram.WebApp.initDataUnsafe?.user;
+      if (tgUser?.first_name) loadedProfile.name = tgUser.first_name;
     }
+
+    // Streak Logic
+    const today = new Date().toDateString();
+    const lastVisitDate = new Date(loadedProfile.lastVisit).toDateString();
+    
+    if (today !== lastVisitDate) {
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      
+      if (yesterday.toDateString() === lastVisitDate) {
+        loadedProfile.streak += 1;
+      } else {
+        loadedProfile.streak = 1;
+      }
+      loadedProfile.lastVisit = new Date().toISOString();
+      localStorage.setItem('nutrigen_user_profile', JSON.stringify(loadedProfile));
+    }
+
+    setUserProfile(loadedProfile);
   }, []);
+
+  // Save Profile Handler
+  const handleSaveProfile = (newProfile: UserProfile) => {
+    setUserProfile(newProfile);
+    localStorage.setItem('nutrigen_user_profile', JSON.stringify(newProfile));
+  };
 
   // Text Rotation Logic
   useEffect(() => {
@@ -57,6 +116,7 @@ const App: React.FC = () => {
       triggerHaptic();
       setActiveAgent(agent);
       setCapabilityIndex(0);
+      setShowAppGrid(false);
     }
   };
 
@@ -67,24 +127,46 @@ const App: React.FC = () => {
         bgGradient: 'radial-gradient(at 0% 0%, #E0F2FE 0, transparent 50%), radial-gradient(at 100% 100%, #DBEAFE 0, transparent 50%)',
         accentColor: 'text-blue-900',
         subColor: 'text-blue-600',
-        searchBtn: 'bg-blue-900'
+        btnClass: 'text-blue-700'
       };
       case AgentMode.FITNESS: return { 
         bgGradient: 'radial-gradient(at 0% 0%, #FFE4E6 0, transparent 50%), radial-gradient(at 100% 100%, #FECDD3 0, transparent 50%)',
         accentColor: 'text-rose-900',
         subColor: 'text-rose-600',
-        searchBtn: 'bg-rose-900'
+        btnClass: 'text-rose-700'
+      };
+      case AgentMode.TRAVEL: return { 
+        bgGradient: 'radial-gradient(at 0% 0%, #EDE9FE 0, transparent 50%), radial-gradient(at 100% 100%, #DDD6FE 0, transparent 50%)',
+        accentColor: 'text-violet-900',
+        subColor: 'text-violet-600',
+        btnClass: 'text-violet-700'
+      };
+      case AgentMode.STYLIST: return { 
+        bgGradient: 'radial-gradient(at 0% 0%, #FCE7F3 0, transparent 50%), radial-gradient(at 100% 100%, #FBCFE8 0, transparent 50%)',
+        accentColor: 'text-pink-900',
+        subColor: 'text-pink-600',
+        btnClass: 'text-pink-700'
       };
       default: return { 
         bgGradient: 'radial-gradient(at 0% 0%, #D1FAE5 0, transparent 50%), radial-gradient(at 100% 100%, #ECFCCB 0, transparent 50%)',
         accentColor: 'text-[#1a2e35]',
         subColor: 'text-emerald-600',
-        searchBtn: 'bg-[#1a1a1a]'
+        btnClass: 'text-emerald-700'
       };
     }
   };
 
   const style = getAgentStyle();
+
+  const getAgentTitle = () => {
+     switch(activeAgent) {
+       case AgentMode.LAWYER: return 'AI Юрист';
+       case AgentMode.FITNESS: return 'AI Тренер';
+       case AgentMode.TRAVEL: return 'AI Гид';
+       case AgentMode.STYLIST: return 'AI Стилист';
+       default: return 'AI Шеф';
+     }
+  }
 
   const renderContent = () => {
     const commonClasses = "min-h-screen bg-[#F2F6F7] pb-10 pt-24 px-4 animate-slide-up absolute inset-0 z-40 overflow-y-auto";
@@ -97,11 +179,15 @@ const App: React.FC = () => {
       </div>
     );
 
-    // Contextual Views based on Agent
-    if (currentView === AppView.PHOTO_ANALYZER) return <div className={commonClasses}><Header title="Сканер" /><PhotoAnalyzer agentMode={activeAgent} /></div>;
-    if (currentView === AppView.RECIPES) return <div className={commonClasses}><Header title="Рецепты" /><RecipeFinder /></div>;
-    if (currentView === AppView.MEAL_PLANNER) return <div className={commonClasses}><Header title="Меню" /><MealPlanner /></div>;
+    if (currentView === AppView.PHOTO_ANALYZER) return <div className={commonClasses}><Header title="Сканер" /><PhotoAnalyzer agentMode={activeAgent} userProfile={userProfile} /></div>;
+    if (currentView === AppView.RECIPES) return <div className={commonClasses}><Header title="Рецепты" /><RecipeFinder userProfile={userProfile} /></div>;
+    if (currentView === AppView.MEAL_PLANNER) return <div className={commonClasses}><Header title="Меню" /><MealPlanner userProfile={userProfile} /></div>;
     if (currentView === AppView.HISTORY) return <div className={commonClasses}><Header title="История" /><ProgressChart /></div>;
+    if (currentView === AppView.PROFILE) return <div className={commonClasses}><Header title="Настройки" /><ProfileSettings profile={userProfile} onSave={handleSaveProfile} /></div>;
+    if (currentView === AppView.DOCUMENT_DRAFTER) return <div className={commonClasses}><Header title="Документы" /><DocumentDrafter userProfile={userProfile} /></div>;
+    if (currentView === AppView.WORKOUT_PLANNER) return <div className={commonClasses}><Header title="Тренировка" /><WorkoutPlanner userProfile={userProfile} /></div>;
+    if (currentView === AppView.TRIP_PLANNER) return <div className={commonClasses}><Header title="Маршрут" /><TripPlanner userProfile={userProfile} /></div>;
+    if (currentView === AppView.CAPSULE_WARDROBE) return <div className={commonClasses}><Header title="Капсула" /><CapsuleBuilder userProfile={userProfile} /></div>;
     
     if (currentView === AppView.CHAT) {
       return (
@@ -110,18 +196,81 @@ const App: React.FC = () => {
                 <button onClick={() => setCurrentView('HOME')} className="mr-4 p-2 bg-gray-50 rounded-full">
                    <ArrowLeft className="w-6 h-6 text-gray-800" />
                  </button>
-                 <span className="font-heading font-bold text-xl">
-                   {activeAgent === AgentMode.LAWYER ? 'AI Юрист' : activeAgent === AgentMode.FITNESS ? 'AI Тренер' : 'AI Шеф'}
-                 </span>
+                 <span className="font-heading font-bold text-xl">{getAgentTitle()}</span>
              </div>
              <div className="flex-1 bg-gray-50">
-               <ChatAssistant initialMessage={initialChatMessage} onClearInitial={() => setInitialChatMessage('')} agentMode={activeAgent} />
+               <ChatAssistant initialMessage={initialChatMessage} onClearInitial={() => setInitialChatMessage('')} agentMode={activeAgent} userProfile={userProfile} />
              </div>
           </div>
       );
     }
     return null;
   };
+
+  const getMainActionButton = () => {
+    // LAWYER: Chat is main
+    if (activeAgent === AgentMode.LAWYER) {
+      return (
+        <button 
+           onClick={() => setCurrentView(AppView.CHAT)} 
+           className="w-full py-4 bg-white rounded-2xl shadow-lg shadow-gray-200/50 text-gray-800 font-bold text-lg flex items-center justify-center gap-3 hover:scale-105 active:scale-95 transition-all"
+         >
+            <Search className={`w-6 h-6 ${style.btnClass}`}/>
+            Чат с Юристом
+         </button>
+      )
+    }
+
+    // FITNESS: Chat is main
+    if (activeAgent === AgentMode.FITNESS) {
+      return (
+        <button 
+           onClick={() => setCurrentView(AppView.CHAT)} 
+           className="w-full py-4 bg-white rounded-2xl shadow-lg shadow-gray-200/50 text-gray-800 font-bold text-lg flex items-center justify-center gap-3 hover:scale-105 active:scale-95 transition-all"
+         >
+            <Activity className={`w-6 h-6 ${style.btnClass}`}/>
+            Чат с Тренером
+         </button>
+      )
+    }
+
+    // TRAVEL: Chat is main
+    if (activeAgent === AgentMode.TRAVEL) {
+      return (
+        <button 
+           onClick={() => setCurrentView(AppView.CHAT)} 
+           className="w-full py-4 bg-white rounded-2xl shadow-lg shadow-gray-200/50 text-gray-800 font-bold text-lg flex items-center justify-center gap-3 hover:scale-105 active:scale-95 transition-all"
+         >
+            <Globe className={`w-6 h-6 ${style.btnClass}`}/>
+            Чат с Гидом
+         </button>
+      )
+    }
+
+    // STYLIST: Chat is main
+    if (activeAgent === AgentMode.STYLIST) {
+      return (
+        <button 
+           onClick={() => setCurrentView(AppView.CHAT)} 
+           className="w-full py-4 bg-white rounded-2xl shadow-lg shadow-gray-200/50 text-gray-800 font-bold text-lg flex items-center justify-center gap-3 hover:scale-105 active:scale-95 transition-all"
+         >
+            <Shirt className={`w-6 h-6 ${style.btnClass}`}/>
+            Чат со Стилистом
+         </button>
+      )
+    }
+    
+    // CHEF: Chat is main
+    return (
+       <button 
+         onClick={() => setCurrentView(AppView.CHAT)} 
+         className="w-full py-4 bg-white rounded-2xl shadow-lg shadow-gray-200/50 text-gray-800 font-bold text-lg flex items-center justify-center gap-3 hover:scale-105 active:scale-95 transition-all"
+       >
+          <Search className={`w-6 h-6 ${style.btnClass}`}/>
+          Чат с Шефом
+       </button>
+    )
+  }
 
   return (
     <div className="relative min-h-screen w-full overflow-hidden transition-colors duration-700" style={{ background: style.bgGradient }}>
@@ -139,98 +288,182 @@ const App: React.FC = () => {
            <button onClick={() => setCurrentView(AppView.HISTORY)} className="w-12 h-12 bg-white/60 backdrop-blur-md rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform">
              <History className="w-5 h-5 text-gray-700" />
            </button>
-           <button className="w-12 h-12 bg-white/60 backdrop-blur-md rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform">
+           
+           {/* Streak Counter */}
+           <div className="flex items-center gap-1 bg-white/60 backdrop-blur-md px-3 py-1.5 rounded-full shadow-lg">
+              <Zap className="w-4 h-4 text-amber-500 fill-amber-500" />
+              <span className="text-sm font-bold text-gray-800">{userProfile.streak} дн</span>
+           </div>
+
+           <button onClick={() => setCurrentView(AppView.PROFILE)} className="w-12 h-12 bg-white/60 backdrop-blur-md rounded-full flex items-center justify-center shadow-lg active:scale-95 transition-transform">
              <User className="w-5 h-5 text-gray-700" />
            </button>
         </div>
 
         {/* Hero Greeting */}
-        <div className="flex-1 flex flex-col items-center justify-start pt-8 md:pt-16 text-center z-10">
-           <div className={`mb-2 px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wider bg-white/50 backdrop-blur-sm ${style.subColor}`}>
-             {activeAgent === AgentMode.LAWYER ? 'Юридический Помощник' : activeAgent === AgentMode.FITNESS ? 'Фитнес Тренер' : 'Персональный Шеф'}
+        <div className="flex-1 flex flex-col items-center justify-center text-center z-10 -mt-20">
+           <div className={`mb-4 px-5 py-2 rounded-full text-xs font-bold uppercase tracking-wider bg-white/50 backdrop-blur-sm ${style.subColor} shadow-sm`}>
+             {activeAgent === AgentMode.LAWYER ? 'Юрист' : activeAgent === AgentMode.FITNESS ? 'Тренер' : activeAgent === AgentMode.TRAVEL ? 'Гид' : activeAgent === AgentMode.STYLIST ? 'Стилист' : 'Шеф-Повар'}
            </div>
-           <h1 className={`text-5xl md:text-6xl font-heading font-extrabold ${style.accentColor} tracking-tight leading-[1.1] mb-2 animate-pop-in`}>
-             Привет,<br />{username}
+           <h1 className={`text-6xl font-heading font-extrabold ${style.accentColor} tracking-tight leading-[1.1] mb-4 animate-pop-in`}>
+             Привет,<br />{userProfile.name}
            </h1>
-           <div className="h-8 flex items-center justify-center overflow-hidden mb-2">
+           <div className="h-8 flex items-center justify-center overflow-hidden mb-8">
              <p className={`text-xl ${style.subColor} font-medium transition-all duration-500 ease-in-out transform ${isCapabilityVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
                {capabilities[activeAgent][capabilityIndex]}
              </p>
            </div>
            
            {/* Contextual Action Buttons */}
-           <div className="mt-4 md:mt-8 flex gap-3 animate-pop-in relative z-20" style={{ animationDelay: '0.2s' }}>
-             {activeAgent === AgentMode.CHEF && (
-               <>
-                 <button onClick={() => setCurrentView(AppView.RECIPES)} className="px-5 py-3 bg-white rounded-2xl shadow-sm text-emerald-700 font-bold text-sm flex items-center gap-2 hover:scale-105 transition-transform"><ChefHat className="w-4 h-4"/> Рецепты</button>
-                 <button onClick={() => setCurrentView(AppView.MEAL_PLANNER)} className="px-5 py-3 bg-white rounded-2xl shadow-sm text-blue-700 font-bold text-sm flex items-center gap-2 hover:scale-105 transition-transform"><Calendar className="w-4 h-4"/> Меню</button>
-               </>
-             )}
-             {activeAgent === AgentMode.LAWYER && (
-               <button onClick={() => setCurrentView(AppView.PHOTO_ANALYZER)} className="px-6 py-3 bg-white rounded-2xl shadow-sm text-blue-800 font-bold text-sm flex items-center gap-2 hover:scale-105 transition-transform"><FileText className="w-4 h-4"/> Сканер Договора</button>
-             )}
-             {activeAgent === AgentMode.FITNESS && (
-               <button onClick={() => setCurrentView(AppView.PHOTO_ANALYZER)} className="px-6 py-3 bg-white rounded-2xl shadow-sm text-rose-700 font-bold text-sm flex items-center gap-2 hover:scale-105 transition-transform"><Dumbbell className="w-4 h-4"/> Анализ Оборудования</button>
-             )}
+           <div className="grid grid-cols-1 gap-3 w-full max-w-xs animate-pop-in relative z-20" style={{ animationDelay: '0.2s' }}>
+             
+             {/* Main Primary Action */}
+             {getMainActionButton()}
+
+             {/* Secondary Actions */}
+             <div className="grid grid-cols-2 gap-3">
+                
+                {/* CHEF SPECIFIC */}
+                {activeAgent === AgentMode.CHEF && (
+                   <>
+                     <button onClick={() => setCurrentView(AppView.PHOTO_ANALYZER)} className="py-4 bg-white/80 backdrop-blur-md rounded-2xl shadow-sm font-bold text-sm flex flex-col items-center justify-center gap-1 hover:bg-white transition-colors">
+                       <Camera className={`w-5 h-5 ${style.btnClass}`}/>
+                       Сканер Еды
+                     </button>
+                     <button onClick={() => setCurrentView(AppView.RECIPES)} className="py-4 bg-white/80 backdrop-blur-md rounded-2xl shadow-sm font-bold text-sm flex flex-col items-center justify-center gap-1 hover:bg-white transition-colors">
+                       <ChefHat className={`w-5 h-5 ${style.btnClass}`}/>
+                       Рецепты
+                     </button>
+                   </>
+                )}
+
+                {/* LAWYER SPECIFIC */}
+                {activeAgent === AgentMode.LAWYER && (
+                   <>
+                     <button onClick={() => setCurrentView(AppView.PHOTO_ANALYZER)} className="py-4 bg-white/80 backdrop-blur-md rounded-2xl shadow-sm font-bold text-sm flex flex-col items-center justify-center gap-1 hover:bg-white transition-colors">
+                       <Camera className={`w-5 h-5 ${style.btnClass}`}/>
+                       Сканер Док.
+                     </button>
+                     <button onClick={() => setCurrentView(AppView.DOCUMENT_DRAFTER)} className="py-4 bg-white/80 backdrop-blur-md rounded-2xl shadow-sm font-bold text-sm flex flex-col items-center justify-center gap-1 hover:bg-white transition-colors">
+                       <FileText className={`w-5 h-5 ${style.btnClass}`}/>
+                       Составить
+                     </button>
+                   </>
+                )}
+
+                {/* FITNESS SPECIFIC */}
+                {activeAgent === AgentMode.FITNESS && (
+                   <>
+                     <button onClick={() => setCurrentView(AppView.PHOTO_ANALYZER)} className="py-4 bg-white/80 backdrop-blur-md rounded-2xl shadow-sm font-bold text-sm flex flex-col items-center justify-center gap-1 hover:bg-white transition-colors">
+                       <Camera className={`w-5 h-5 ${style.btnClass}`}/>
+                       Сканер
+                     </button>
+                     <button onClick={() => setCurrentView(AppView.WORKOUT_PLANNER)} className="py-4 bg-white/80 backdrop-blur-md rounded-2xl shadow-sm font-bold text-sm flex flex-col items-center justify-center gap-1 hover:bg-white transition-colors">
+                       <Dumbbell className={`w-5 h-5 ${style.btnClass}`}/>
+                       Тренировка
+                     </button>
+                   </>
+                )}
+
+                {/* TRAVEL SPECIFIC */}
+                {activeAgent === AgentMode.TRAVEL && (
+                   <>
+                     <button onClick={() => setCurrentView(AppView.PHOTO_ANALYZER)} className="py-4 bg-white/80 backdrop-blur-md rounded-2xl shadow-sm font-bold text-sm flex flex-col items-center justify-center gap-1 hover:bg-white transition-colors">
+                       <Camera className={`w-5 h-5 ${style.btnClass}`}/>
+                       Сканер
+                     </button>
+                     <button onClick={() => setCurrentView(AppView.TRIP_PLANNER)} className="py-4 bg-white/80 backdrop-blur-md rounded-2xl shadow-sm font-bold text-sm flex flex-col items-center justify-center gap-1 hover:bg-white transition-colors">
+                       <MapPin className={`w-5 h-5 ${style.btnClass}`}/>
+                       Маршрут
+                     </button>
+                   </>
+                )}
+
+                {/* STYLIST SPECIFIC */}
+                {activeAgent === AgentMode.STYLIST && (
+                   <>
+                     <button onClick={() => setCurrentView(AppView.PHOTO_ANALYZER)} className="py-4 bg-white/80 backdrop-blur-md rounded-2xl shadow-sm font-bold text-sm flex flex-col items-center justify-center gap-1 hover:bg-white transition-colors">
+                       <Camera className={`w-5 h-5 ${style.btnClass}`}/>
+                       Оценить Лук
+                     </button>
+                     <button onClick={() => setCurrentView(AppView.CAPSULE_WARDROBE)} className="py-4 bg-white/80 backdrop-blur-md rounded-2xl shadow-sm font-bold text-sm flex flex-col items-center justify-center gap-1 hover:bg-white transition-colors">
+                       <Layers className={`w-5 h-5 ${style.btnClass}`}/>
+                       Капсула
+                     </button>
+                   </>
+                )}
+             </div>
+
            </div>
         </div>
 
-        {/* AGENT SELECTOR (FAN) */}
-        <div className="relative w-full max-w-xs mx-auto h-[220px] mb-6">
-           
-           {/* SEARCH/CHAT BUTTON (Floating Above) */}
-           <div className="absolute -top-6 left-1/2 -translate-x-1/2 z-40 animate-float">
-              <button 
-                onClick={() => setCurrentView(AppView.CHAT)}
-                className={`w-20 h-20 ${style.searchBtn} rounded-full flex items-center justify-center text-white shadow-2xl border-4 border-[#F2F6F7] active:scale-90 transition-transform duration-300 group`}
-              >
-                <Search className="w-8 h-8 group-hover:scale-110 transition-transform" strokeWidth={2.5} />
-              </button>
-           </div>
-
-           {/* --- LEFT CARD (LAWYER) --- */}
-           <div 
-              onClick={() => switchAgent(AgentMode.LAWYER)}
-              className={`absolute bottom-4 left-0 w-[110px] h-[150px] bg-white rounded-[24px] shadow-xl flex flex-col items-center justify-center p-2 cursor-pointer z-10 fan-card hover:z-20 hover:scale-105 ${activeAgent === AgentMode.LAWYER ? 'border-2 border-blue-400 z-30 scale-105' : 'shadow-blue-900/5'}`}
-              style={{ transformOrigin: 'bottom right', transform: 'rotate(-15deg) translateY(10px)' }}
-           >
-              <div style={{ transform: 'rotate(15deg)' }} className="flex flex-col items-center gap-3">
-                <div className="w-12 h-12 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600">
-                  <Scale className="w-6 h-6" />
-                </div>
-                <span className="font-heading font-bold text-sm text-gray-600">Юрист</span>
-              </div>
-           </div>
-
-           {/* --- RIGHT CARD (FITNESS) --- */}
-           <div 
-              onClick={() => switchAgent(AgentMode.FITNESS)}
-              className={`absolute bottom-4 right-0 w-[110px] h-[150px] bg-white rounded-[24px] shadow-xl flex flex-col items-center justify-center p-2 cursor-pointer z-10 fan-card hover:z-20 hover:scale-105 ${activeAgent === AgentMode.FITNESS ? 'border-2 border-rose-400 z-30 scale-105' : 'shadow-rose-900/5'}`}
-              style={{ transformOrigin: 'bottom left', transform: 'rotate(15deg) translateY(10px)' }}
-           >
-               <div style={{ transform: 'rotate(-15deg)' }} className="flex flex-col items-center gap-3">
-                <div className="w-12 h-12 bg-rose-50 rounded-2xl flex items-center justify-center text-rose-600">
-                  <Activity className="w-6 h-6" />
-                </div>
-                <span className="font-heading font-bold text-sm text-gray-600">Спорт</span>
-              </div>
-           </div>
-
-           {/* --- CENTER CARD (CHEF) --- */}
-           <div 
-              onClick={() => switchAgent(AgentMode.CHEF)}
-              className={`absolute bottom-8 left-1/2 -translate-x-1/2 w-[120px] h-[160px] bg-white rounded-[28px] shadow-2xl flex flex-col items-center justify-center p-2 cursor-pointer z-20 fan-card hover:scale-105 ${activeAgent === AgentMode.CHEF ? 'border-2 border-emerald-400 z-30 scale-105' : 'shadow-emerald-900/10'}`}
-           >
-              <div className="flex flex-col items-center gap-4 pt-4">
-                <div className="w-14 h-14 bg-emerald-50 rounded-2xl flex items-center justify-center text-emerald-600 shadow-sm">
-                  <ChefHat className="w-7 h-7" />
-                </div>
-                <span className="font-heading font-bold text-sm text-gray-800">Шеф</span>
-              </div>
-           </div>
-
+        {/* BOTTOM FLOATING BAR */}
+        <div className="absolute bottom-8 left-0 right-0 flex justify-center z-30">
+          <button 
+            onClick={() => setShowAppGrid(true)}
+            className="flex items-center gap-2 bg-gray-900 text-white px-6 py-3 rounded-full shadow-2xl hover:scale-105 active:scale-95 transition-transform"
+          >
+            <Grid className="w-5 h-5" />
+            <span className="font-bold">Все приложения</span>
+          </button>
         </div>
+
       </div>
+
+      {/* APP GRID OVERLAY */}
+      {showAppGrid && (
+        <div className="fixed inset-0 z-50 bg-gray-900/40 backdrop-blur-xl flex flex-col justify-end animate-fade-in" onClick={() => setShowAppGrid(false)}>
+          <div className="bg-white rounded-t-[2.5rem] p-8 pb-12 animate-slide-up" onClick={(e) => e.stopPropagation()}>
+             <div className="flex justify-between items-center mb-8">
+               <h3 className="text-2xl font-heading font-bold text-gray-900">Приложения</h3>
+               <button onClick={() => setShowAppGrid(false)} className="p-2 bg-gray-100 rounded-full"><X className="w-5 h-5 text-gray-500"/></button>
+             </div>
+             
+             <div className="grid grid-cols-3 gap-y-8 gap-x-4">
+               {/* Chef */}
+               <div onClick={() => switchAgent(AgentMode.CHEF)} className="flex flex-col items-center gap-2 cursor-pointer group">
+                 <div className={`w-16 h-16 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110 shadow-lg ${activeAgent === AgentMode.CHEF ? 'bg-emerald-500 text-white shadow-emerald-500/40' : 'bg-white border border-gray-100 text-emerald-600'}`}>
+                   <ChefHat className="w-8 h-8"/>
+                 </div>
+                 <span className="text-xs font-bold text-gray-600">Шеф</span>
+               </div>
+
+               {/* Lawyer */}
+               <div onClick={() => switchAgent(AgentMode.LAWYER)} className="flex flex-col items-center gap-2 cursor-pointer group">
+                 <div className={`w-16 h-16 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110 shadow-lg ${activeAgent === AgentMode.LAWYER ? 'bg-blue-500 text-white shadow-blue-500/40' : 'bg-white border border-gray-100 text-blue-600'}`}>
+                   <Scale className="w-8 h-8"/>
+                 </div>
+                 <span className="text-xs font-bold text-gray-600">Юрист</span>
+               </div>
+
+               {/* Fitness */}
+               <div onClick={() => switchAgent(AgentMode.FITNESS)} className="flex flex-col items-center gap-2 cursor-pointer group">
+                 <div className={`w-16 h-16 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110 shadow-lg ${activeAgent === AgentMode.FITNESS ? 'bg-rose-500 text-white shadow-rose-500/40' : 'bg-white border border-gray-100 text-rose-600'}`}>
+                   <Activity className="w-8 h-8"/>
+                 </div>
+                 <span className="text-xs font-bold text-gray-600">Тренер</span>
+               </div>
+
+               {/* Travel */}
+               <div onClick={() => switchAgent(AgentMode.TRAVEL)} className="flex flex-col items-center gap-2 cursor-pointer group">
+                 <div className={`w-16 h-16 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110 shadow-lg ${activeAgent === AgentMode.TRAVEL ? 'bg-violet-500 text-white shadow-violet-500/40' : 'bg-white border border-gray-100 text-violet-600'}`}>
+                   <Globe className="w-8 h-8"/>
+                 </div>
+                 <span className="text-xs font-bold text-gray-600">Гид</span>
+               </div>
+
+               {/* Stylist */}
+               <div onClick={() => switchAgent(AgentMode.STYLIST)} className="flex flex-col items-center gap-2 cursor-pointer group">
+                 <div className={`w-16 h-16 rounded-2xl flex items-center justify-center transition-transform group-hover:scale-110 shadow-lg ${activeAgent === AgentMode.STYLIST ? 'bg-pink-500 text-white shadow-pink-500/40' : 'bg-white border border-gray-100 text-pink-600'}`}>
+                   <Shirt className="w-8 h-8"/>
+                 </div>
+                 <span className="text-xs font-bold text-gray-600">Стилист</span>
+               </div>
+
+             </div>
+          </div>
+        </div>
+      )}
 
       {renderContent()}
     </div>

@@ -2,9 +2,13 @@
 import React, { useState } from 'react';
 import { Calendar, ShoppingCart, Loader2, Sparkles, ChevronDown, ChevronUp, Copy, Check } from 'lucide-react';
 import { generateWeeklyPlan } from '../services/geminiService';
-import { WeeklyPlan } from '../types';
+import { WeeklyPlan, UserProfile } from '../types';
 
-const MealPlanner: React.FC = () => {
+interface MealPlannerProps {
+  userProfile?: UserProfile;
+}
+
+const MealPlanner: React.FC<MealPlannerProps> = ({ userProfile }) => {
   const [goal, setGoal] = useState('Сбалансированное питание');
   const [preferences, setPreferences] = useState('');
   const [plan, setPlan] = useState<WeeklyPlan | null>(null);
@@ -24,7 +28,7 @@ const MealPlanner: React.FC = () => {
     setLoading(true);
     setPlan(null);
     try {
-      const result = await generateWeeklyPlan(goal, preferences || 'Нет ограничений');
+      const result = await generateWeeklyPlan(goal, preferences || 'Нет ограничений', userProfile);
       setPlan(result);
       triggerHaptic('success');
     } catch (error) {

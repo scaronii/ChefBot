@@ -2,9 +2,13 @@
 import React, { useState } from 'react';
 import { ChefHat, Search, Clock, Flame, ArrowRight, Loader2, Sparkles } from 'lucide-react';
 import { suggestRecipes } from '../services/geminiService';
-import { Recipe } from '../types';
+import { Recipe, UserProfile } from '../types';
 
-const RecipeFinder: React.FC = () => {
+interface RecipeFinderProps {
+  userProfile?: UserProfile;
+}
+
+const RecipeFinder: React.FC<RecipeFinderProps> = ({ userProfile }) => {
   const [ingredients, setIngredients] = useState('');
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(false);
@@ -23,7 +27,7 @@ const RecipeFinder: React.FC = () => {
     setLoading(true);
     setRecipes([]);
     try {
-      const results = await suggestRecipes(ingredients);
+      const results = await suggestRecipes(ingredients, [], userProfile);
       setRecipes(results);
       triggerHaptic('success');
     } catch (error) {
